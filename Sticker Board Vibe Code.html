@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Sticker Board">
+<title>✦ Sticker Board</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --red: #E4000F;
+    --navy: #1a1a2e;
+    --yellow: #F9D308;
+    --white: #ffffff;
+    --page-bg: #f5f0ff;
+    --theme-mid: #ede5ff;
+    --theme-dot: #c4b5ff;
+    --theme-btn: #6B4FBB;
+    --theme-btn-txt: #ffffff;
+  }
+
+  html, body {
+    height: 100%; width: 100%;
+    overflow: hidden;
+    background: #111;
+    font-family: 'Nunito', sans-serif;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  #shell {
+    display: flex;
+    flex-direction: column;
+    height: 100svh;
+    max-width: 430px;
+    margin: 0 auto;
+    background: var(--page-bg);
+    overflow: hidden;
+    position: relative;
+    transition: background 0.7s ease;
+  }
+
+  /* ── TOP BAR ── */
+  .topbar {
+    background: var(--red);
+    padding: env(safe-area-inset-top, 10px) 16px 10px;
+    padding-top: max(env(safe-area-inset-top), 10px);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 3px solid var(--navy);
+    z-index: 10;
+  }
+  .topbar-left { display: flex; flex-direction: column; }
+  .topbar-title {
+    font-family: 'Fredoka One', cursive;
+    font-size: 20px; color: #fff; letter-spacing: 0.5px; line-height: 1;
+  }
+  .topbar-sub {
+    font-size: 11px; color: rgba(255,255,255,0.85);
+    font-weight: 700; letter-spacing: 0.6px; margin-top: 1px;
+    text-transform: uppercase;
+  }
+  .topbar-badge {
+    background: var(--yellow); color: var(--navy);
+    border-radius: 12px; font-size: 11px; font-weight: 700;
+    padding: 4px 10px; border: 2px solid var(--navy);
+    font-family: 'Fredoka One', cursive; white-space: nowrap;
+  }
+
+  /* ── PAGES ── */
+  .page { flex: 1; overflow-y: auto; display: none; flex-direction: column; -webkit-overflow-scrolling: touch; }
+  .page.active { display: flex; }
+
+  /* ── BOTTOM TABS ── */
+  .tabs {
+    display: flex;
+    background: var(--navy);
+    border-top: 3px solid var(--navy);
+    flex-shrink: 0;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .tab-btn {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; gap: 2px;
+    padding: 8px 4px 10px;
+    border: none; background: none; cursor: pointer;
+    color: rgba(255,255,255,0.4);
+    font-size: 9px; font-family: 'Nunito', sans-serif;
+    font-weight: 700; letter-spacing: 0.4px; text-transform: uppercase;
+    transition: color 0.15s;
+  }
+  .tab-btn i { font-size: 22px; }
+  .tab-btn.active { color: var(--yellow); }
+
+  /* ── CAROUSEL ── */
+  #page-carousel {
+    align-items: center;
+    justify-content: center;
+    padding: 16px 16px 12px;
+    overflow: hidden;
+  }
+  .carousel-scene {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+  }
+
+  /* slide container — clips the animation */
+  .slide-window {
+    width: 100%;
+    overflow: hidden;
+    border-radius: 18px;
+    border: 3px solid var(--navy);
+    position: relative;
+  }
+
+  /* the actual card slides inside the window */
+  .c-card {
+    width: 100%;
+    background: var(--white);
+    display: flex;
+    flex-direction: column;
+    /* slide animations applied via JS */
+    transition: transform 0.42s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.42s ease;
+  }
+  .c-card.slide-in-right  { animation: slideInRight  0.42s cubic-bezier(0.4,0,0.2,1) both; }
+  .c-card.slide-out-left  { animation: slideOutLeft  0.42s cubic-bezier(0.4,0,0.2,1) both; }
+  .c-card.slide-in-left   { animation: slideInLeft   0.42s cubic-bezier(0.4,0,0.2,1) both; }
+  .c-card.slide-out-right { animation: slideOutRight 0.42s cubic-bezier(0.4,0,0.2,1) both; }
+
+  @keyframes slideInRight  { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+  @keyframes slideOutLeft  { from { transform: translateX(0);    opacity: 1; } to { transform: translateX(-100%); opacity: 0; } }
+  @keyframes slideInLeft   { from { transform: translateX(-100%);opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+  @keyframes slideOutRight { from { transform: translateX(0);    opacity: 1; } to { transform: translateX(100%); opacity: 0; } }
+
+  .c-img-wrap {
+    width: 100%; aspect-ratio: 4/3;
+    background: var(--theme-mid);
+    display: flex; align-items: center; justify-content: center;
+    overflow: hidden;
+    transition: background 0.7s ease;
+  }
+  .c-img-wrap img {
+    width: 100%; height: 100%; object-fit: contain; padding: 14px;
+  }
+  .c-no-img {
+    display: flex; flex-direction: column; align-items: center;
+    gap: 8px; color: #bbb;
+  }
+  .c-no-img i { font-size: 44px; }
+  .c-no-img span { font-size: 12px; font-weight: 700; }
+
+  .c-info {
+    padding: 12px 14px 14px;
+    background: var(--white);
+    border-top: 2px solid var(--navy);
+  }
+  .c-name {
+    font-family: 'Fredoka One', cursive;
+    font-size: 18px; color: var(--navy); margin-bottom: 2px;
+  }
+  .c-cat {
+    font-size: 11px; font-weight: 700; color: #666;
+    text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;
+  }
+  .c-link {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 12px; font-weight: 700;
+    color: #185FA5; text-decoration: none;
+  }
+  .c-link i { font-size: 13px; }
+
+  /* dots */
+  .dots { display: flex; gap: 6px; align-items: center; }
+  .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--theme-dot); border: 2px solid var(--navy);
+    transition: all 0.3s;
+  }
+  .dot.on { background: var(--theme-btn); width: 22px; border-radius: 4px; }
+
+  /* nav arrows */
+  .ctrl-row { display: flex; align-items: center; gap: 14px; }
+  .ctrl-btn {
+    width: 46px; height: 46px; border-radius: 50%;
+    border: 3px solid var(--navy);
+    background: var(--navy);
+    color: var(--yellow);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: transform 0.12s, background 0.15s;
+    flex-shrink: 0;
+  }
+  .ctrl-btn:hover { background: #2d2d50; }
+  .ctrl-btn:active { transform: scale(0.92); }
+  .ctrl-btn i { font-size: 20px; }
+
+  /* counter badge between arrows */
+  .slide-counter {
+    font-family: 'Fredoka One', cursive;
+    font-size: 14px; color: var(--navy);
+    min-width: 60px; text-align: center;
+  }
+
+  /* empty state */
+  .c-empty {
+    text-align: center; color: #888;
+    padding: 30px 20px; width: 100%;
+    display: flex; flex-direction: column; align-items: center; gap: 14px;
+  }
+  .c-empty i { font-size: 52px; color: var(--theme-dot); }
+  .c-empty p { font-size: 14px; font-weight: 700; }
+  .go-add-btn {
+    padding: 12px 24px; border-radius: 14px;
+    border: 3px solid var(--navy);
+    background: var(--red); color: var(--white);
+    cursor: pointer; font-size: 14px; font-weight: 700;
+    font-family: 'Nunito', sans-serif;
+    transition: transform 0.12s;
+  }
+  .go-add-btn:active { transform: scale(0.96); }
+
+  /* ── LIBRARY ── */
+  #page-library { padding: 0; }
+  .lib-pills {
+    display: flex; gap: 6px; padding: 10px 12px;
+    overflow-x: auto; scrollbar-width: none;
+    background: var(--white); border-bottom: 2px solid #eee;
+    flex-shrink: 0;
+  }
+  .lib-pills::-webkit-scrollbar { display: none; }
+  .pill {
+    flex-shrink: 0; padding: 6px 13px; border-radius: 14px;
+    font-size: 11px; font-weight: 700; cursor: pointer;
+    border: 2.5px solid var(--navy);
+    background: var(--white); color: var(--navy);
+    font-family: 'Nunito', sans-serif; transition: all 0.15s;
+    letter-spacing: 0.3px;
+  }
+  .pill.on { background: var(--navy); color: var(--yellow); }
+
+  .lib-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px; padding: 12px;
+  }
+  .lib-card {
+    background: var(--white);
+    border: 2.5px solid var(--navy);
+    border-radius: 14px; overflow: hidden;
+    cursor: pointer; position: relative;
+    transition: transform 0.15s;
+  }
+  .lib-card:hover { transform: scale(1.02); }
+  .lib-img {
+    width: 100%; aspect-ratio: 1/1;
+    object-fit: contain; background: #f8f4ff; padding: 6px;
+  }
+  .lib-no-img {
+    width: 100%; aspect-ratio: 1/1;
+    background: #f5f0ff;
+    display: flex; align-items: center; justify-content: center; color: #c4b5ff;
+  }
+  .lib-no-img i { font-size: 32px; }
+  .lib-meta { padding: 7px 9px; border-top: 2px solid var(--navy); background: var(--white); }
+  .lib-name {
+    font-size: 12px; font-weight: 700; color: var(--navy);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .lib-cat {
+    font-size: 10px; font-weight: 700; color: #777;
+    text-transform: uppercase; letter-spacing: 0.4px; margin-top: 1px;
+  }
+  .del-x {
+    position: absolute; top: 5px; right: 5px;
+    width: 24px; height: 24px; border-radius: 50%;
+    background: var(--red); color: var(--white);
+    border: 2px solid var(--navy);
+    cursor: pointer; display: none;
+    align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 700; font-family: sans-serif;
+    line-height: 1;
+  }
+  .lib-card:hover .del-x { display: flex; }
+
+  .lib-empty {
+    grid-column: 1/-1; text-align: center;
+    padding: 40px 16px; color: #aaa;
+  }
+  .lib-empty i { font-size: 40px; margin-bottom: 10px; display: block; color: #c4b5ff; }
+  .lib-empty p { font-size: 13px; font-weight: 700; }
+
+  /* ── ADD PAGE ── */
+  #page-add { padding: 0; }
+  .add-inner { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+
+  .dz {
+    border: 3px dashed #c4b5ff; border-radius: 16px;
+    min-height: 140px; display: flex;
+    align-items: center; justify-content: center;
+    cursor: pointer; background: #f8f4ff;
+    transition: border-color 0.15s; overflow: hidden;
+  }
+  .dz:hover { border-color: #9f86ff; }
+  .dz-hint { text-align: center; color: #888; padding: 16px; }
+  .dz-hint i { font-size: 36px; color: #c4b5ff; margin-bottom: 6px; display: block; }
+  .dz-hint p { font-size: 13px; font-weight: 700; }
+  .dz-hint span { font-size: 11px; color: #aaa; display: block; margin-top: 3px; }
+  .dz img { max-width: 100%; max-height: 170px; object-fit: contain; padding: 12px; }
+
+  .fl { display: flex; flex-direction: column; gap: 4px; }
+  .fl label {
+    font-size: 11px; font-weight: 700; color: #666;
+    text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .fi, .fs {
+    width: 100%; padding: 10px 12px; border-radius: 12px;
+    border: 2.5px solid #ddd5ff;
+    font-size: 14px; font-weight: 600;
+    background: var(--white); color: var(--navy);
+    font-family: 'Nunito', sans-serif;
+    transition: border-color 0.15s; outline: none;
+  }
+  .fi:focus, .fs:focus { border-color: #9f86ff; }
+
+  .paste-note { font-size: 11px; color: #aaa; text-align: center; font-weight: 600; }
+
+  .save-btn {
+    width: 100%; padding: 14px;
+    border-radius: 14px; border: 3px solid var(--navy);
+    background: var(--red); color: var(--white);
+    font-size: 16px; font-weight: 700;
+    font-family: 'Fredoka One', cursive;
+    cursor: pointer; letter-spacing: 0.5px;
+    transition: transform 0.12s, background 0.15s;
+  }
+  .save-btn:hover { background: #c0000d; }
+  .save-btn:active { transform: scale(0.97); }
+
+  .toast {
+    text-align: center; font-size: 13px; font-weight: 700;
+    color: #0F6E56; opacity: 0;
+    transition: opacity 0.3s; letter-spacing: 0.3px;
+  }
+</style>
+</head>
+<body>
+
+<div id="shell">
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="topbar-title">✦ sticker board</div>
+      <div class="topbar-sub" id="page-sub">discover</div>
+    </div>
+    <div class="topbar-badge" id="top-badge">0 items</div>
+  </div>
+
+  <!-- CAROUSEL PAGE -->
+  <div class="page active" id="page-carousel">
+    <div class="carousel-scene">
+
+      <div id="c-empty" class="c-empty" style="display:none">
+        <i class="ti ti-sparkles"></i>
+        <p>no stickers yet — add some!</p>
+        <button class="go-add-btn" id="go-add-btn">+ add sticker</button>
+      </div>
+
+      <div id="c-main" style="width:100%;display:flex;flex-direction:column;align-items:center;gap:14px">
+        <div class="slide-window" id="slide-window">
+          <div class="c-card" id="c-card">
+            <div class="c-img-wrap" id="c-img-wrap">
+              <div class="c-no-img">
+                <i class="ti ti-sparkles"></i>
+                <span>add stickers!</span>
+              </div>
+            </div>
+            <div class="c-info">
+              <div class="c-name" id="c-name">—</div>
+              <div class="c-cat" id="c-cat">—</div>
+              <a class="c-link" id="c-link" href="#" style="display:none" target="_blank">
+                <i class="ti ti-external-link"></i> view product
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <div class="dots" id="dots"></div>
+
+        <div class="ctrl-row">
+          <button class="ctrl-btn" id="prev-btn" aria-label="previous">
+            <i class="ti ti-arrow-left"></i>
+          </button>
+          <div class="slide-counter" id="slide-counter">1 / 1</div>
+          <button class="ctrl-btn" id="next-btn" aria-label="next">
+            <i class="ti ti-arrow-right"></i>
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- LIBRARY PAGE -->
+  <div class="page" id="page-library">
+    <div class="lib-pills" id="lib-pills"></div>
+    <div class="lib-grid" id="lib-grid"></div>
+  </div>
+
+  <!-- ADD PAGE -->
+  <div class="page" id="page-add">
+    <div class="add-inner">
+      <div class="dz" id="dz">
+        <div class="dz-hint">
+          <i class="ti ti-photo-up"></i>
+          <p>tap to upload image</p>
+          <span>or paste from clipboard (⌘V / long-press → paste)</span>
+        </div>
+      </div>
+      <p class="paste-note">you can also paste an image URL below</p>
+      <div class="fl">
+        <label>image URL</label>
+        <input class="fi" id="url-in" type="url" inputmode="url" placeholder="https://...">
+      </div>
+      <div class="fl">
+        <label>product name</label>
+        <input class="fi" id="name-in" type="text" placeholder="e.g. gold hoop earrings">
+      </div>
+      <div class="fl">
+        <label>product link</label>
+        <input class="fi" id="link-in" type="url" inputmode="url" placeholder="https://...">
+      </div>
+      <div class="fl">
+        <label>category</label>
+        <select class="fs" id="cat-sel">
+          <option value="Clothes">👗 Clothes</option>
+          <option value="Accessories">👜 Accessories</option>
+          <option value="Jewelry">💍 Jewelry</option>
+          <option value="Shoes">👟 Shoes</option>
+          <option value="Beauty">💄 Beauty</option>
+          <option value="Home">🏠 Home</option>
+          <option value="Other">📌 Other</option>
+        </select>
+      </div>
+      <button class="save-btn" id="save-btn">save sticker!</button>
+      <div class="toast" id="toast">✓ sticker saved!</div>
+    </div>
+  </div>
+
+  <!-- BOTTOM TABS -->
+  <div class="tabs">
+    <button class="tab-btn active" data-page="carousel">
+      <i class="ti ti-sparkles"></i>discover
+    </button>
+    <button class="tab-btn" data-page="library">
+      <i class="ti ti-layout-grid"></i>library
+    </button>
+    <button class="tab-btn" data-page="add">
+      <i class="ti ti-circle-plus"></i>add
+    </button>
+  </div>
+</div>
+
+<input type="file" id="file-in" accept="image/*" style="display:none">
+
+<script>
+  const CAT_EMOJI = { Clothes:'👗', Accessories:'👜', Jewelry:'💍', Shoes:'👟', Beauty:'💄', Home:'🏠', Other:'📌' };
+
+  const THEMES = [
+    { bg:'#f5f0ff', mid:'#ede5ff', dot:'#c4b5ff', btn:'#6B4FBB' },
+    { bg:'#fff0f5', mid:'#ffe0ec', dot:'#ffb3cc', btn:'#D4537E' },
+    { bg:'#f0f9ff', mid:'#dff0ff', dot:'#93d4ff', btn:'#185FA5' },
+    { bg:'#f0fff6', mid:'#d6ffeb', dot:'#8de8bb', btn:'#0F6E56' },
+    { bg:'#fffbf0', mid:'#fff3cc', dot:'#ffd966', btn:'#BA7517' },
+    { bg:'#fff0ed', mid:'#ffe3de', dot:'#ffb3a0', btn:'#993C1D' },
+    { bg:'#f5f5f5', mid:'#ebebeb', dot:'#c8c8c8', btn:'#444441' },
+  ];
+
+  let stickers = JSON.parse(localStorage.getItem('sb-nint-v2') || '[]');
+  let libFilter = 'All';
+  let order = [];
+  let cidx = 0;
+  let autoTimer = null;
+  let pendImg = null;
+  let isAnimating = false;
+
+  function save() { localStorage.setItem('sb-nint-v2', JSON.stringify(stickers)); }
+
+  function shuffle(a) {
+    const r = [...a];
+    for (let i = r.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [r[i], r[j]] = [r[j], r[i]];
+    }
+    return r;
+  }
+
+  function applyTheme(t) {
+    const s = document.getElementById('shell');
+    s.style.setProperty('--page-bg', t.bg);
+    s.style.setProperty('--theme-mid', t.mid);
+    s.style.setProperty('--theme-dot', t.dot);
+    s.style.setProperty('--theme-btn', t.btn);
+    const wrap = document.getElementById('c-img-wrap');
+    if (wrap) wrap.style.background = t.mid;
+  }
+
+  function extractColor(img, cb) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 20; canvas.height = 20;
+    const ctx = canvas.getContext('2d');
+    try {
+      ctx.drawImage(img, 0, 0, 20, 20);
+      const d = ctx.getImageData(0, 0, 20, 20).data;
+      let r = 0, g = 0, b = 0, count = 0;
+      for (let i = 0; i < d.length; i += 4) {
+        const alpha = d[i+3];
+        const isWhite = d[i] > 240 && d[i+1] > 240 && d[i+2] > 240;
+        const isBlack = d[i] < 15 && d[i+1] < 15 && d[i+2] < 15;
+        if (alpha > 80 && !isWhite && !isBlack) {
+          r += d[i]; g += d[i+1]; b += d[i+2]; count++;
+        }
+      }
+      if (count > 0) {
+        r = Math.round(r / count); g = Math.round(g / count); b = Math.round(b / count);
+        cb(r, g, b);
+      } else {
+        cb(null);
+      }
+    } catch(e) { cb(null); }
+  }
+
+  function applyDynamicColor(r, g, b) {
+    if (r === null) { applyTheme(THEMES[cidx % THEMES.length]); return; }
+    const bg  = `rgb(${Math.round(r*0.10+232)},${Math.round(g*0.10+227)},${Math.round(b*0.10+232)})`;
+    const mid = `rgb(${Math.round(r*0.16+218)},${Math.round(g*0.16+213)},${Math.round(b*0.16+218)})`;
+    const dot = `rgb(${Math.round(r*0.50+115)},${Math.round(g*0.50+105)},${Math.round(b*0.50+115)})`;
+    const btn = `rgb(${Math.round(r*0.50+45)}, ${Math.round(g*0.42+32)}, ${Math.round(b*0.50+45)})`;
+    const s = document.getElementById('shell');
+    s.style.setProperty('--page-bg', bg);
+    s.style.setProperty('--theme-mid', mid);
+    s.style.setProperty('--theme-dot', dot);
+    s.style.setProperty('--theme-btn', btn);
+    const wrap = document.getElementById('c-img-wrap');
+    if (wrap) wrap.style.background = mid;
+  }
+
+  /* ── PAGE ROUTING ── */
+  const pageSubs = { carousel: 'discover', library: 'my library', add: 'add sticker' };
+
+  function showPage(id) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('page-' + id).classList.add('active');
+    document.querySelector('[data-page="' + id + '"]').classList.add('active');
+    document.getElementById('page-sub').textContent = pageSubs[id];
+    if (id === 'carousel') { startAuto(); renderCarousel(); }
+    else { stopAuto(); }
+    if (id === 'library') renderLibrary();
+    updateBadge();
+  }
+
+  document.querySelectorAll('.tab-btn').forEach(b => {
+    b.addEventListener('click', () => showPage(b.dataset.page));
+  });
+
+  function updateBadge() {
+    const n = stickers.length;
+    document.getElementById('top-badge').textContent = n + (n === 1 ? ' item' : ' items');
+  }
+
+  /* ── AUTOPLAY ── */
+  function startAuto() {
+    stopAuto();
+    if (stickers.length > 1) {
+      autoTimer = setInterval(() => navigate(1), 3500);
+    }
+  }
+
+  function stopAuto() {
+    clearInterval(autoTimer);
+    autoTimer = null;
+  }
+
+  /* ── CAROUSEL ── */
+  function renderCarousel() {
+    const empty = document.getElementById('c-empty');
+    const main = document.getElementById('c-main');
+    if (stickers.length === 0) {
+      empty.style.display = 'flex';
+      main.style.display = 'none';
+      return;
+    }
+    empty.style.display = 'none';
+    main.style.display = 'flex';
+    if (order.length !== stickers.length) {
+      order = shuffle([...Array(stickers.length).keys()]);
+    }
+    if (cidx >= order.length) cidx = 0;
+    populateCard(stickers[order[cidx]]);
+    renderDots();
+    updateCounter();
+  }
+
+  function populateCard(s) {
+    const wrap = document.getElementById('c-img-wrap');
+    if (s.img) {
+      const tmpImg = new Image();
+      tmpImg.crossOrigin = 'anonymous';
+      tmpImg.onload = () => extractColor(tmpImg, (r, g, b) => applyDynamicColor(r, g, b));
+      tmpImg.onerror = () => applyTheme(THEMES[cidx % THEMES.length]);
+      tmpImg.src = s.img;
+      wrap.innerHTML = `<img src="${s.img}" alt="${s.name || ''}" crossorigin="anonymous" onerror="this.parentNode.innerHTML='<div class=c-no-img><i class=ti ti-photo-off></i><span>no image</span></div>'">`;
+    } else {
+      wrap.innerHTML = `<div class="c-no-img"><i class="ti ti-photo-off"></i><span>no image</span></div>`;
+      applyTheme(THEMES[cidx % THEMES.length]);
+    }
+    document.getElementById('c-name').textContent = s.name || 'untitled';
+    document.getElementById('c-cat').textContent = (CAT_EMOJI[s.cat] || '') + ' ' + s.cat;
+    const link = document.getElementById('c-link');
+    if (s.link) { link.href = s.link; link.style.display = 'inline-flex'; }
+    else { link.style.display = 'none'; }
+  }
+
+  function navigate(dir) {
+    if (isAnimating || stickers.length === 0) return;
+    isAnimating = true;
+
+    const card = document.getElementById('c-card');
+    const outClass = dir > 0 ? 'slide-out-left' : 'slide-out-right';
+    const inClass  = dir > 0 ? 'slide-in-right'  : 'slide-in-left';
+
+    card.classList.add(outClass);
+
+    setTimeout(() => {
+      cidx = (cidx + dir + order.length) % order.length;
+      card.classList.remove(outClass);
+      populateCard(stickers[order[cidx]]);
+      renderDots();
+      updateCounter();
+
+      void card.offsetWidth; // force reflow
+      card.classList.add(inClass);
+      card.addEventListener('animationend', () => {
+        card.classList.remove(inClass);
+        isAnimating = false;
+      }, { once: true });
+    }, 380);
+  }
+
+  function renderDots() {
+    const wrap = document.getElementById('dots');
+    const total = order.length;
+    const max = 8;
+    if (total <= max) {
+      wrap.innerHTML = order.map((_, i) =>
+        `<div class="dot${i === cidx ? ' on' : ''}"></div>`
+      ).join('');
+    } else {
+      let html = '';
+      for (let i = 0; i < max; i++) {
+        const isOn = i === Math.round(cidx * (max - 1) / (total - 1));
+        html += `<div class="dot${isOn ? ' on' : ''}"></div>`;
+      }
+      wrap.innerHTML = html;
+    }
+  }
+
+  function updateCounter() {
+    const el = document.getElementById('slide-counter');
+    if (el) el.textContent = (cidx + 1) + ' / ' + order.length;
+  }
+
+  document.getElementById('next-btn').addEventListener('click', () => {
+    stopAuto(); navigate(1); startAuto();
+  });
+  document.getElementById('prev-btn').addEventListener('click', () => {
+    stopAuto(); navigate(-1); startAuto();
+  });
+  document.getElementById('go-add-btn').addEventListener('click', () => showPage('add'));
+
+  /* ── LIBRARY ── */
+  function renderLibrary() {
+    const pills = document.getElementById('lib-pills');
+    const grid = document.getElementById('lib-grid');
+    const usedCats = ['All', ...Object.keys(CAT_EMOJI).filter(c => stickers.some(s => s.cat === c))];
+
+    pills.innerHTML = usedCats.map(c =>
+      `<button class="pill${c === libFilter ? ' on' : ''}" data-cat="${c}">${
+        c === 'All' ? 'all ✦' : (CAT_EMOJI[c] || '') + ' ' + c.toLowerCase()
+      }</button>`
+    ).join('');
+
+    pills.querySelectorAll('.pill').forEach(p => {
+      p.addEventListener('click', () => { libFilter = p.dataset.cat; renderLibrary(); });
+    });
+
+    const filtered = libFilter === 'All' ? stickers : stickers.filter(s => s.cat === libFilter);
+
+    if (!filtered.length) {
+      grid.innerHTML = `<div class="lib-empty"><i class="ti ti-layout-grid"></i><p>nothing here yet</p></div>`;
+      return;
+    }
+
+    grid.innerHTML = filtered.map(s => {
+      const idx = stickers.indexOf(s);
+      const img = s.img
+        ? `<img class="lib-img" src="${s.img}" alt="${s.name || ''}" onerror="this.style.display='none'">`
+        : `<div class="lib-no-img"><i class="ti ti-photo-off"></i></div>`;
+      return `<div class="lib-card" data-idx="${idx}">
+        ${img}
+        <button class="del-x" data-idx="${idx}">×</button>
+        <div class="lib-meta">
+          <div class="lib-name">${s.name || 'untitled'}</div>
+          <div class="lib-cat">${CAT_EMOJI[s.cat] || ''} ${s.cat}</div>
+        </div>
+      </div>`;
+    }).join('');
+
+    grid.querySelectorAll('.del-x').forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        stickers.splice(parseInt(btn.dataset.idx), 1);
+        order = shuffle([...Array(stickers.length).keys()]);
+        cidx = 0;
+        save(); renderLibrary(); updateBadge();
+      });
+    });
+  }
+
+  /* ── ADD PAGE ── */
+  function setPreview(src) {
+    pendImg = src;
+    document.getElementById('dz').innerHTML = `<img src="${src}" alt="preview">`;
+  }
+
+  function clearAddForm() {
+    pendImg = null;
+    document.getElementById('dz').innerHTML = `
+      <div class="dz-hint">
+        <i class="ti ti-photo-up"></i>
+        <p>tap to upload image</p>
+        <span>or paste from clipboard (⌘V / long-press → paste)</span>
+      </div>`;
+    document.getElementById('url-in').value = '';
+    document.getElementById('name-in').value = '';
+    document.getElementById('link-in').value = '';
+    document.getElementById('cat-sel').value = 'Clothes';
+  }
+
+  document.getElementById('dz').addEventListener('click', () => {
+    document.getElementById('file-in').click();
+  });
+
+  document.getElementById('file-in').addEventListener('change', e => {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => setPreview(ev.target.result);
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  });
+
+  document.getElementById('url-in').addEventListener('input', e => {
+    const v = e.target.value.trim();
+    if (v) setPreview(v);
+  });
+
+  document.addEventListener('paste', e => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (const item of items) {
+      if (item.type.startsWith('image/')) {
+        const file = item.getAsFile();
+        const reader = new FileReader();
+        reader.onload = ev => { showPage('add'); setPreview(ev.target.result); };
+        reader.readAsDataURL(file);
+      }
+    }
+  });
+
+  document.getElementById('save-btn').addEventListener('click', () => {
+    const name = document.getElementById('name-in').value.trim();
+    const link = document.getElementById('link-in').value.trim();
+    const cat  = document.getElementById('cat-sel').value;
+    const url  = document.getElementById('url-in').value.trim();
+    const img  = pendImg || url || null;
+
+    stickers.unshift({ name: name || 'untitled', img, link, cat, id: Date.now() });
+    order = shuffle([...Array(stickers.length).keys()]);
+    cidx = 0;
+    save();
+    updateBadge();
+    clearAddForm();
+
+    // show toast briefly then redirect to library
+    const toast = document.getElementById('toast');
+    toast.style.opacity = '1';
+    setTimeout(() => {
+      toast.style.opacity = '0';
+      setTimeout(() => showPage('library'), 300);
+    }, 900);
+  });
+
+  /* ── INIT ── */
+  renderCarousel();
+  updateBadge();
+  startAuto();
+</script>
+</body>
+</html>
