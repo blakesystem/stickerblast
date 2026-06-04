@@ -609,26 +609,49 @@
   }
   .c-img-wrap { position: relative; }
 
-  .c-price-chip {
+  /* ── PRICE TAG SHAPE (carousel + modal) ── */
+  /* pointed-left price tag via clip-path; border via multi-direction drop-shadow */
+  .price-tag {
     position: absolute;
-    top: 14px; right: 14px;
     background: var(--yellow);
     color: var(--navy);
     font-family: 'Fredoka One', cursive;
-    font-size: 15px;
-    padding: 5px 13px;
-    border: 3px solid var(--navy);
-    border-radius: 14px;
     letter-spacing: 0.5px;
-    box-shadow: 0 3px 0 var(--navy);
-    z-index: 4;
-    transform: rotate(8deg);
-    animation: chipPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+    white-space: nowrap;
     pointer-events: none;
+    /* pentagon: pointed on left, rect on right */
+    clip-path: polygon(18px 0%, 100% 0%, 100% 100%, 18px 100%, 0% 50%);
+    filter:
+      drop-shadow( 2px  2px 0 var(--navy))
+      drop-shadow(-2px  2px 0 var(--navy))
+      drop-shadow( 2px -2px 0 var(--navy))
+      drop-shadow(-2px -2px 0 var(--navy))
+      drop-shadow( 0px  4px 0 var(--navy));
+  }
+  /* the little hole near the point */
+  .price-tag::after {
+    content: '';
+    position: absolute;
+    left: 22px; top: 50%;
+    transform: translateY(-50%);
+    width: 7px; height: 7px;
+    background: var(--navy);
+    border-radius: 50%;
+    opacity: 0.5;
+  }
+
+  .c-price-chip {
+    top: auto; bottom: 12px; right: 0;
+    font-size: 14px;
+    padding: 5px 14px 5px 26px;
+    z-index: 4;
+    transform: rotate(-6deg);
+    transform-origin: right center;
+    animation: chipPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
   }
   @keyframes chipPop {
-    0%   { transform: rotate(20deg) scale(0); opacity: 0; }
-    100% { transform: rotate(8deg)  scale(1); opacity: 1; }
+    0%   { transform: rotate(-20deg) scale(0) translateX(10px); opacity: 0; }
+    100% { transform: rotate(-6deg)  scale(1) translateX(0);    opacity: 1; }
   }
 
   .c-tap-hint {
@@ -720,14 +743,10 @@
   .modal-backdrop.open { display: flex; }
   @keyframes mFade { from { opacity: 0 } to { opacity: 1 } }
 
-  .modal-card {
-    width: 100%; max-width: 360px;
-    background: var(--white);
-    border-radius: 24px;
-    border: 4px solid var(--navy);
-    overflow: hidden;
+  /* wrapper lets the close button escape overflow:hidden */
+  .modal-card-wrap {
     position: relative;
-    box-shadow: 0 8px 0 var(--navy), 0 18px 40px rgba(0,0,0,0.32);
+    width: 100%; max-width: 360px;
     animation: mPop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) both;
   }
   @keyframes mPop {
@@ -735,13 +754,21 @@
     60%  { transform: scale(1.05) rotate(2deg); opacity: 1; }
     100% { transform: scale(1)   rotate(0);    opacity: 1; }
   }
+  .modal-card {
+    width: 100%;
+    background: var(--white);
+    border-radius: 24px;
+    border: 4px solid var(--navy);
+    overflow: hidden;
+    box-shadow: 0 8px 0 var(--navy), 0 18px 40px rgba(0,0,0,0.32);
+  }
   .modal-close {
-    position: absolute; top: 10px; right: 10px;
-    width: 38px; height: 38px; border-radius: 50%;
+    position: absolute; top: -14px; right: -14px;
+    width: 40px; height: 40px; border-radius: 50%;
     background: var(--red); color: var(--white);
     border: 3px solid var(--navy);
-    font-size: 18px; font-weight: 700; font-family: sans-serif;
-    cursor: pointer; z-index: 4;
+    font-size: 20px; font-weight: 700; font-family: sans-serif;
+    cursor: pointer; z-index: 10;
     display: flex; align-items: center; justify-content: center;
     line-height: 1;
     box-shadow: 0 3px 0 var(--navy);
@@ -774,21 +801,16 @@
     transform: rotate(-8deg);
     animation: tagWiggle 1.8s ease-in-out infinite;
     z-index: 3;
+    pointer-events: none;
   }
 
+  /* modal price chip: bottom-right of image, clear of the X button */
   .modal-price-chip {
-    position: absolute;
-    top: 14px; right: 14px;
-    background: var(--yellow);
-    color: var(--navy);
-    font-family: 'Fredoka One', cursive;
+    bottom: 14px; right: 0;
     font-size: 17px;
-    padding: 6px 14px;
-    border: 3px solid var(--navy);
-    border-radius: 14px;
-    letter-spacing: 0.5px;
-    box-shadow: 0 3px 0 var(--navy);
-    transform: rotate(8deg);
+    padding: 7px 18px 7px 30px;
+    transform: rotate(-6deg);
+    transform-origin: right center;
     z-index: 3;
   }
 
@@ -872,7 +894,7 @@
                 <span>add stickers!</span>
               </div>
             </div>
-            <div class="c-price-chip" id="c-price-chip" style="display:none"></div>
+            <div class="price-tag c-price-chip" id="c-price-chip" style="display:none"></div>
             <div class="c-info">
               <div class="c-name" id="c-name">—</div>
               <div class="c-cat" id="c-cat">—</div>
@@ -987,17 +1009,19 @@
 
 <!-- DETAIL MODAL -->
 <div class="modal-backdrop" id="detail-modal" aria-hidden="true">
-  <div class="modal-card" id="detail-card" role="dialog" aria-modal="true">
+  <div class="modal-card-wrap" id="detail-card" role="dialog" aria-modal="true">
     <button class="modal-close" id="detail-close" aria-label="close">×</button>
-    <div class="modal-img-wrap" id="detail-img-wrap"></div>
-    <div class="modal-info">
-      <div class="modal-cat" id="detail-cat"></div>
-      <div class="modal-name" id="detail-name"></div>
+    <div class="modal-card">
+      <div class="modal-img-wrap" id="detail-img-wrap"></div>
+      <div class="modal-info">
+        <div class="modal-cat" id="detail-cat"></div>
+        <div class="modal-name" id="detail-name"></div>
+      </div>
+      <a class="modal-bag-btn" id="detail-bag" target="_blank" rel="noopener" href="#">
+        <i class="ti ti-shopping-bag"></i>
+        <span id="detail-bag-text">shop now</span>
+      </a>
     </div>
-    <a class="modal-bag-btn" id="detail-bag" target="_blank" rel="noopener" href="#">
-      <i class="ti ti-shopping-bag"></i>
-      <span id="detail-bag-text">shop now</span>
-    </a>
   </div>
 </div>
 
@@ -1725,7 +1749,7 @@
     }
     if (sticker.price) {
       const p = document.createElement('div');
-      p.className = 'modal-price-chip';
+      p.className = 'price-tag modal-price-chip';
       p.textContent = formatPrice(sticker.price);
       wrap.appendChild(p);
     }
