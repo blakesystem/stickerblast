@@ -931,10 +931,10 @@
       </div>
       <p class="paste-note">…or use the paste buttons below</p>
       <div class="fl">
-        <label>image URL</label>
-        <div class="paste-field" id="url-in" data-placeholder="tap to paste image URL">
+        <label>paste image / URL</label>
+        <div class="paste-field" id="url-in" data-placeholder="tap to paste image or URL">
           <span class="pf-icon"><i class="ti ti-clipboard"></i></span>
-          <span class="pf-label">tap to paste image URL</span>
+          <span class="pf-label">tap to paste image or URL</span>
         </div>
       </div>
       <div class="fl">
@@ -1617,73 +1617,155 @@
     const keep = Math.floor((len - 1) / 2);
     return s.slice(0, keep) + '…' + s.slice(-keep);
   }
-  function setupPasteField(id, opts) {
+
+  async function readClipboard() {
+    // Returns { kind: 'image', blob } | { kind: 'text', text } | null
+    if (!navigator.clipboard) return null;
+
+    if (navigator.clipboard.read) {
+      try {
+        const items = await navigator.clipboard.read();
+        // prefer image
+        for (const item of items) {
+          const imgType = (item.types || []).find(t => t && t.startsWith('image/'));
+          if (imgType) {
+            const blob = await item.getType(imgType);
+            return { kind: 'image', blob };
+          }
+        }
+        // then text
+        for (const item of items) {
+          if ((item.types || []).includes('text/plain')) {
+            const blob = await item.getType('text/plain');
+            const text = (await blob.text() || '').trim();
+            if (text) return { kind: 'text', text };
+          }
+        }
+      } catch (e) {
+        console.warn('clipboard.read failed', e);
+      }
+    }
+    // fallback to text-only read
+    if (navigator.clipboard.readText) {
+      try {
+        const text = (await navigator.clipboard.readText() || '').trim();
+        if (text) return { kind: 'text', text };
+      } catch (e) { /* permission denied */ }
+    }
+    return null;
+  }
+
+  function blobToDataURL(blob) {
+    return new Promise((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(r.result);
+      r.onerror = () => reject(r.error);
+      r.readAsDataURL(blob);
+    });
+  }
+
+  function setupPasteField(id, handler) {
     const el = document.getElementById(id);
     const labelEl = el.querySelector('.pf-label');
     const placeholder = el.dataset.placeholder;
     let value = '';
     let clearBtn = null;
 
-    function render() {
-      if (value) {
-        el.classList.add('has-value');
-        labelEl.textContent = truncMiddle(value, 32);
-        if (!clearBtn) {
-          clearBtn = document.createElement('button');
-          clearBtn.type = 'button';
-          clearBtn.className = 'paste-clear';
-          clearBtn.setAttribute('aria-label', 'clear');
-          clearBtn.textContent = '×';
-          clearBtn.addEventListener('click', e => {
-            e.stopPropagation();
-            value = '';
-            render();
-            opts.onSet && opts.onSet('');
-          });
-          el.appendChild(clearBtn);
-        }
-      } else {
-        el.classList.remove('has-value');
-        labelEl.textContent = placeholder;
-        if (clearBtn) { clearBtn.remove(); clearBtn = null; }
-      }
+    function ensureClear() {
+      if (clearBtn) return;
+      clearBtn = document.createElement('button');
+      clearBtn.type = 'button';
+      clearBtn.className = 'paste-clear';
+      clearBtn.setAttribute('aria-label', 'clear');
+      clearBtn.textContent = '×';
+      clearBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        reset();
+      });
+      el.appendChild(clearBtn);
     }
-
-    async function readClip() {
-      let txt = '';
-      try {
-        if (navigator.clipboard && navigator.clipboard.readText) {
-          txt = (await navigator.clipboard.readText() || '').trim();
-        }
-      } catch { /* permission denied or unavailable */ }
-      if (!txt) {
-        // fallback so user always has an escape hatch
-        txt = (prompt('Paste your URL:', '') || '').trim();
-      }
-      if (!txt) return;
-      if (!opts.validate(txt)) {
-        alert("That doesn't look like a valid URL (needs http:// or https://).");
-        return;
-      }
-      value = txt;
-      render();
-      opts.onSet && opts.onSet(value);
+    function removeClear() {
+      if (clearBtn) { clearBtn.remove(); clearBtn = null; }
+    }
+    function set(v, label) {
+      value = v;
+      el.classList.add('has-value');
+      labelEl.textContent = label || truncMiddle(v, 32);
+      ensureClear();
+    }
+    function reset() {
+      value = '';
+      el.classList.remove('has-value');
+      labelEl.textContent = placeholder;
+      removeClear();
+      handler.onReset && handler.onReset();
     }
 
     el.addEventListener('click', e => {
       if (e.target.closest('.paste-clear')) return;
       if (value) return;
-      readClip();
+      handler.onPaste({ set, reset });
     });
 
     return {
       get: () => value,
-      set: v => { value = v || ''; render(); },
+      set: v => v ? set(v) : reset(),
     };
   }
 
-  const urlField  = setupPasteField('url-in',  { validate: isValidUrl, onSet: v => { if (v) setPreview(v); } });
-  const linkField = setupPasteField('link-in', { validate: isValidUrl });
+  const urlField = setupPasteField('url-in', {
+    async onPaste({ set }) {
+      const result = await readClipboard();
+      if (!result) {
+        const txt = (prompt('Paste an image URL (or copy an image and try again):', '') || '').trim();
+        if (!txt) return;
+        if (!isValidUrl(txt)) { alert("That doesn't look like a valid URL."); return; }
+        setPreview(txt);
+        set(txt);
+        return;
+      }
+      if (result.kind === 'image') {
+        try {
+          const raw = await blobToDataURL(result.blob);
+          const small = await maybeCompress(raw);
+          setPreview(small);
+          set(small, '✓ image pasted from clipboard');
+        } catch (e) {
+          alert("Couldn't read the image from your clipboard.");
+        }
+        return;
+      }
+      const txt = result.text;
+      if (!isValidUrl(txt)) {
+        alert("Your clipboard has text, but it's not a valid image URL.");
+        return;
+      }
+      setPreview(txt);
+      set(txt);
+    },
+    onReset() {
+      pendImg = null;
+      document.getElementById('dz').innerHTML = `
+        <div class="dz-hint">
+          <i class="ti ti-photo-up"></i>
+          <p>tap to upload image</p>
+          <span>or paste from clipboard (⌘V / long-press → paste)</span>
+        </div>`;
+    },
+  });
+
+  const linkField = setupPasteField('link-in', {
+    async onPaste({ set }) {
+      const result = await readClipboard();
+      let text = (result && result.kind === 'text') ? result.text : '';
+      if (!text) {
+        text = (prompt('Paste your product link:', '') || '').trim();
+      }
+      if (!text) return;
+      if (!isValidUrl(text)) { alert("That doesn't look like a valid URL."); return; }
+      set(text);
+    },
+  });
 
   document.addEventListener('paste', e => {
     const items = e.clipboardData?.items;
