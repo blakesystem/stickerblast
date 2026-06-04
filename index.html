@@ -1120,7 +1120,7 @@
   }
 
   /* ── IMAGE COMPRESSION ── */
-  function compressImage(src, maxDim = 1200, quality = 0.82) {
+  function compressImage(src, maxDim = 1200) {
     return new Promise((resolve, reject) => {
       const img = new Image();
       img.onload = () => {
@@ -1135,12 +1135,30 @@
         const c = document.createElement('canvas');
         c.width = w; c.height = h;
         const ctx = c.getContext('2d');
-        // white background so transparent PNGs don't get black where alpha was
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0, 0, w, h);
         ctx.drawImage(img, 0, 0, w, h);
+
+        // detect transparency by scanning the alpha channel
+        let hasAlpha = false;
         try {
-          resolve(c.toDataURL('image/jpeg', quality));
+          const px = ctx.getImageData(0, 0, w, h).data;
+          for (let i = 3; i < px.length; i += 4) {
+            if (px[i] < 255) { hasAlpha = true; break; }
+          }
+        } catch (e) { /* cross-origin image — treat as opaque */ }
+
+        try {
+          if (hasAlpha) {
+            // WebP supports transparency + lossy compression (iOS 14+)
+            // falls back to PNG on older browsers
+            const webp = c.toDataURL('image/webp', 0.85);
+            resolve(webp.startsWith('data:image/webp') ? webp : c.toDataURL('image/png'));
+          } else {
+            // fully opaque — fill white behind image then JPEG for smallest size
+            ctx.globalCompositeOperation = 'destination-over';
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, w, h);
+            resolve(c.toDataURL('image/jpeg', 0.82));
+          }
         } catch (e) { reject(e); }
       };
       img.onerror = () => reject(new Error('image load failed'));
