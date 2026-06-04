@@ -7,6 +7,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Sticker Board">
 <title>✦ Sticker Board</title>
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="favicon.png">
 <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
 <style>
@@ -101,13 +103,12 @@
 
   /* ── CAROUSEL ── */
   #page-carousel {
-    align-items: center;
-    justify-content: center;
-    padding: 16px 16px 12px;
-    overflow: hidden;
+    padding: 16px 0 28px;
+    gap: 22px;
   }
   .carousel-scene {
     width: 100%;
+    padding: 0 16px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -171,7 +172,13 @@
   }
   .c-cat {
     font-size: 11px; font-weight: 700; color: #666;
-    text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;
+    text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;
+  }
+  .c-price {
+    font-family: 'Fredoka One', cursive;
+    font-size: 18px; color: var(--theme-btn);
+    margin-bottom: 8px; letter-spacing: 0.3px;
+    transition: color 0.4s ease;
   }
   .c-link {
     display: inline-flex; align-items: center; gap: 4px;
@@ -179,6 +186,109 @@
     color: #185FA5; text-decoration: none;
   }
   .c-link i { font-size: 13px; }
+
+  /* ── CATEGORY ROWS (below carousel) ── */
+  #cat-sections { display: flex; flex-direction: column; gap: 18px; width: 100%; }
+  .cat-section { width: 100%; }
+  .cat-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 16px; margin-bottom: 8px;
+  }
+  .cat-title {
+    font-family: 'Fredoka One', cursive;
+    font-size: 15px; color: var(--navy);
+    letter-spacing: 0.6px; text-transform: uppercase;
+  }
+  .cat-count {
+    font-size: 11px; font-weight: 700;
+    color: var(--theme-btn);
+    background: var(--theme-mid);
+    padding: 2px 8px; border-radius: 8px;
+    border: 2px solid var(--navy);
+  }
+  .cat-row {
+    display: flex; gap: 10px;
+    overflow-x: auto; scrollbar-width: none;
+    padding: 4px 16px 6px;
+    scroll-snap-type: x proximity;
+    -webkit-overflow-scrolling: touch;
+  }
+  .cat-row::-webkit-scrollbar { display: none; }
+  .cat-tile {
+    flex: 0 0 118px;
+    width: 118px;
+    scroll-snap-align: start;
+    background: var(--white);
+    border: 2.5px solid var(--navy);
+    border-radius: 12px;
+    overflow: hidden;
+    cursor: pointer;
+    text-decoration: none;
+    color: inherit;
+    display: flex; flex-direction: column;
+    transition: transform 0.12s;
+    position: relative;
+  }
+  .cat-tile:active { transform: scale(0.95); }
+  .cat-tile-img {
+    width: 100%; aspect-ratio: 1/1;
+    background: #f8f4ff;
+    display: flex; align-items: center; justify-content: center;
+    overflow: hidden;
+    position: relative;
+  }
+  .cat-tile-img img { width: 100%; height: 100%; object-fit: contain; padding: 5px; }
+  .cat-tile-img > i { font-size: 26px; color: #c4b5ff; }
+  .cat-tile-meta {
+    padding: 5px 7px 6px;
+    border-top: 2px solid var(--navy);
+    background: var(--white);
+  }
+  .cat-tile-name {
+    font-size: 11px; font-weight: 700; color: var(--navy);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .cat-tile-price {
+    font-family: 'Fredoka One', cursive;
+    font-size: 11px; color: var(--theme-btn);
+    margin-top: 1px;
+  }
+  .cat-tile-cart {
+    position: absolute; top: 4px; right: 4px;
+    width: 22px; height: 22px; border-radius: 50%;
+    background: var(--theme-btn); color: var(--white);
+    border: 2px solid var(--navy);
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 1.5px 0 var(--navy);
+    z-index: 2;
+  }
+  .cat-tile-cart i { font-size: 11px; }
+  .cat-tile .new-tag {
+    top: 4px; left: 4px;
+    font-size: 8px; padding: 2px 6px;
+    border-radius: 6px;
+  }
+  .cat-see-tile {
+    flex: 0 0 96px;
+    width: 96px;
+    scroll-snap-align: start;
+    background: var(--theme-mid);
+    border: 2.5px dashed var(--navy);
+    border-radius: 12px;
+    cursor: pointer;
+    color: var(--navy);
+    font-family: 'Fredoka One', cursive;
+    font-size: 13px;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 6px;
+    transition: transform 0.12s, background 0.2s;
+    letter-spacing: 0.4px;
+    font-family: 'Nunito', sans-serif;
+    font-weight: 700; text-transform: uppercase;
+  }
+  .cat-see-tile:active { transform: scale(0.95); background: var(--theme-dot); }
+  .cat-see-tile i { font-size: 26px; color: var(--theme-btn); }
 
   /* dots */
   .dots { display: flex; gap: 6px; align-items: center; }
@@ -281,12 +391,17 @@
     transition: transform 0.15s;
   }
   .lib-card:hover { transform: scale(1.02); }
-  .lib-img {
+  .lib-img-wrap {
+    position: relative;
     width: 100%; aspect-ratio: 1/1;
+  }
+  .lib-img {
+    width: 100%; height: 100%;
     object-fit: contain; background: #f8f4ff; padding: 6px;
+    display: block;
   }
   .lib-no-img {
-    width: 100%; aspect-ratio: 1/1;
+    width: 100%; height: 100%;
     background: #f5f0ff;
     display: flex; align-items: center; justify-content: center; color: #c4b5ff;
   }
@@ -300,17 +415,35 @@
     font-size: 10px; font-weight: 700; color: #777;
     text-transform: uppercase; letter-spacing: 0.4px; margin-top: 1px;
   }
+  .lib-price {
+    font-family: 'Fredoka One', cursive;
+    font-size: 12px; color: var(--theme-btn); margin-top: 3px;
+    letter-spacing: 0.3px;
+  }
   .del-x {
     position: absolute; top: 5px; right: 5px;
-    width: 24px; height: 24px; border-radius: 50%;
-    background: var(--red); color: var(--white);
+    width: 22px; height: 22px; border-radius: 50%;
+    background: rgba(228, 0, 15, 0.92); color: var(--white);
     border: 2px solid var(--navy);
-    cursor: pointer; display: none;
+    cursor: pointer; display: flex;
     align-items: center; justify-content: center;
-    font-size: 14px; font-weight: 700; font-family: sans-serif;
-    line-height: 1;
+    font-size: 13px; font-weight: 700; font-family: sans-serif;
+    line-height: 1; z-index: 3;
   }
-  .lib-card:hover .del-x { display: flex; }
+  .lib-cart {
+    position: absolute; bottom: 5px; right: 5px;
+    width: 32px; height: 32px; border-radius: 50%;
+    background: var(--theme-btn); color: var(--white);
+    border: 2.5px solid var(--navy);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    z-index: 3;
+    box-shadow: 0 2px 0 var(--navy);
+    text-decoration: none;
+    transition: transform 0.12s, background 0.15s;
+  }
+  .lib-cart:active { transform: scale(0.88); }
+  .lib-cart i { font-size: 16px; }
 
   .lib-empty {
     grid-column: 1/-1; text-align: center;
@@ -491,8 +624,9 @@
             <div class="c-info">
               <div class="c-name" id="c-name">—</div>
               <div class="c-cat" id="c-cat">—</div>
+              <div class="c-price" id="c-price" style="display:none"></div>
               <a class="c-link" id="c-link" href="#" style="display:none" target="_blank">
-                <i class="ti ti-external-link"></i> view product
+                <i class="ti ti-shopping-cart"></i> view product
               </a>
             </div>
           </div>
@@ -512,6 +646,8 @@
       </div>
 
     </div>
+
+    <div id="cat-sections"></div>
   </div>
 
   <!-- LIBRARY PAGE -->
@@ -550,6 +686,10 @@
       <div class="fl">
         <label>product link</label>
         <input class="fi" id="link-in" type="url" inputmode="url" placeholder="https://...">
+      </div>
+      <div class="fl">
+        <label>price (optional)</label>
+        <input class="fi" id="price-in" type="text" inputmode="decimal" placeholder="e.g. $25.00">
       </div>
       <div class="fl">
         <label>category</label>
@@ -608,6 +748,17 @@
 
   function getNewIds() {
     return new Set(stickers.slice(0, 3).map(s => s.id));
+  }
+
+  function formatPrice(p) {
+    if (!p) return '';
+    const t = String(p).trim();
+    if (!t) return '';
+    return /^[\d.]/.test(t) ? '$' + t : t;
+  }
+
+  function escapeAttr(v) {
+    return String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   }
 
   function save() {
@@ -781,6 +932,7 @@
     if (stickers.length === 0) {
       empty.style.display = 'flex';
       main.style.display = 'none';
+      renderCategorySections();
       return;
     }
     empty.style.display = 'none';
@@ -792,6 +944,62 @@
     populateCard(stickers[order[cidx]]);
     renderDots();
     updateCounter();
+    renderCategorySections();
+  }
+
+  function renderCategorySections() {
+    const wrap = document.getElementById('cat-sections');
+    if (!wrap) return;
+    if (!stickers.length) { wrap.innerHTML = ''; return; }
+
+    const newIds = getNewIds();
+    const cats = Object.keys(CAT_EMOJI).filter(c => stickers.some(s => s.cat === c));
+
+    wrap.innerHTML = cats.map(cat => {
+      const items = stickers.filter(s => s.cat === cat);
+      const shown = items.slice(0, 8);
+      const tiles = shown.map(s => {
+        const name = escapeAttr(s.name || 'untitled');
+        const imgInner = s.img
+          ? `<img src="${escapeAttr(s.img)}" alt="${name}" onerror="this.style.display='none'">`
+          : `<i class="ti ti-photo-off"></i>`;
+        const priceHtml = s.price ? `<div class="cat-tile-price">${escapeAttr(formatPrice(s.price))}</div>` : '';
+        const newBadge = newIds.has(s.id) ? `<div class="new-tag">NEW!</div>` : '';
+        const cartBtn = s.link ? `<div class="cat-tile-cart"><i class="ti ti-shopping-cart"></i></div>` : '';
+        const linkAttrs = s.link
+          ? `href="${escapeAttr(s.link)}" target="_blank" rel="noopener"`
+          : `href="#" onclick="event.preventDefault()"`;
+        return `<a class="cat-tile" ${linkAttrs}>
+          <div class="cat-tile-img">${imgInner}${newBadge}${cartBtn}</div>
+          <div class="cat-tile-meta">
+            <div class="cat-tile-name">${escapeAttr(s.name || 'untitled')}</div>
+            ${priceHtml}
+          </div>
+        </a>`;
+      }).join('');
+      return `
+        <div class="cat-section">
+          <div class="cat-header">
+            <div class="cat-title">${CAT_EMOJI[cat]} ${cat}</div>
+            <div class="cat-count">${items.length}</div>
+          </div>
+          <div class="cat-row">
+            ${tiles}
+            <button class="cat-see-tile" data-cat="${escapeAttr(cat)}">
+              <i class="ti ti-arrow-right-circle"></i>
+              <span>see all</span>
+            </button>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    wrap.querySelectorAll('.cat-see-tile').forEach(btn => {
+      btn.addEventListener('click', () => {
+        libFilter = btn.dataset.cat;
+        showPage('library');
+      });
+    });
   }
 
   function populateCard(s) {
@@ -809,6 +1017,9 @@
     }
     document.getElementById('c-name').textContent = s.name || 'untitled';
     document.getElementById('c-cat').textContent = (CAT_EMOJI[s.cat] || '') + ' ' + s.cat;
+    const priceEl = document.getElementById('c-price');
+    if (s.price) { priceEl.textContent = formatPrice(s.price); priceEl.style.display = 'block'; }
+    else { priceEl.style.display = 'none'; }
     const link = document.getElementById('c-link');
     if (s.link) { link.href = s.link; link.style.display = 'inline-flex'; }
     else { link.style.display = 'none'; }
@@ -933,17 +1144,25 @@
     grid.innerHTML = filtered.map(s => {
       const idx = stickers.indexOf(s);
       const img = s.img
-        ? `<img class="lib-img" src="${s.img}" alt="${s.name || ''}" onerror="this.style.display='none'">`
+        ? `<img class="lib-img" src="${escapeAttr(s.img)}" alt="${escapeAttr(s.name || '')}" onerror="this.style.display='none'">`
         : `<div class="lib-no-img"><i class="ti ti-photo-off"></i></div>`;
       const newBadge = newIds.has(s.id) ? `<div class="new-tag">NEW!</div>` : '';
+      const cartBtn = s.link
+        ? `<a class="lib-cart" href="${escapeAttr(s.link)}" target="_blank" rel="noopener" aria-label="view product"><i class="ti ti-shopping-cart"></i></a>`
+        : '';
+      const priceHtml = s.price ? `<div class="lib-price">${escapeAttr(formatPrice(s.price))}</div>` : '';
       const popClass = (s.id === justAddedId) ? ' just-added' : '';
       return `<div class="lib-card${popClass}" data-idx="${idx}">
-        ${img}
-        ${newBadge}
-        <button class="del-x" data-idx="${idx}">×</button>
+        <div class="lib-img-wrap">
+          ${img}
+          ${newBadge}
+          <button class="del-x" data-idx="${idx}">×</button>
+          ${cartBtn}
+        </div>
         <div class="lib-meta">
-          <div class="lib-name">${s.name || 'untitled'}</div>
-          <div class="lib-cat">${CAT_EMOJI[s.cat] || ''} ${s.cat}</div>
+          <div class="lib-name">${escapeAttr(s.name || 'untitled')}</div>
+          <div class="lib-cat">${CAT_EMOJI[s.cat] || ''} ${escapeAttr(s.cat)}</div>
+          ${priceHtml}
         </div>
       </div>`;
     }).join('');
@@ -989,6 +1208,7 @@
     document.getElementById('url-in').value = '';
     document.getElementById('name-in').value = '';
     document.getElementById('link-in').value = '';
+    document.getElementById('price-in').value = '';
     document.getElementById('cat-sel').value = 'Clothes';
   }
 
@@ -1023,13 +1243,14 @@
   });
 
   document.getElementById('save-btn').addEventListener('click', () => {
-    const name = document.getElementById('name-in').value.trim();
-    const link = document.getElementById('link-in').value.trim();
-    const cat  = document.getElementById('cat-sel').value;
-    const url  = document.getElementById('url-in').value.trim();
-    const img  = pendImg || url || null;
+    const name  = document.getElementById('name-in').value.trim();
+    const link  = document.getElementById('link-in').value.trim();
+    const cat   = document.getElementById('cat-sel').value;
+    const url   = document.getElementById('url-in').value.trim();
+    const price = document.getElementById('price-in').value.trim();
+    const img   = pendImg || url || null;
 
-    const newSticker = { name: name || 'untitled', img, link, cat, id: Date.now() };
+    const newSticker = { name: name || 'untitled', img, link, cat, price, id: Date.now() };
     stickers.unshift(newSticker);
     justAddedId = newSticker.id;
     order = shuffle([...Array(stickers.length).keys()]);
