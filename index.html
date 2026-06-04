@@ -69,12 +69,23 @@
     font-weight: 700; letter-spacing: 0.6px; margin-top: 1px;
     text-transform: uppercase;
   }
+  .topbar-right {
+    display: flex; flex-direction: column; align-items: flex-end; gap: 5px;
+  }
   .topbar-badge {
     background: var(--yellow); color: var(--navy);
     border-radius: 12px; font-size: 11px; font-weight: 700;
     padding: 4px 10px; border: 2px solid var(--navy);
     font-family: 'Fredoka One', cursive; white-space: nowrap;
   }
+  .topbar-total {
+    background: var(--navy); color: var(--yellow);
+    border-radius: 12px; font-size: 11px; font-weight: 700;
+    padding: 4px 10px; border: 2px solid var(--yellow);
+    font-family: 'Fredoka One', cursive; white-space: nowrap;
+    display: none;
+  }
+  .topbar-total.visible { display: block; }
 
   /* ── PAGES ── */
   .page { flex: 1; overflow-y: auto; display: none; flex-direction: column; -webkit-overflow-scrolling: touch; }
@@ -610,7 +621,6 @@
   .c-img-wrap { position: relative; }
 
   /* ── PRICE TAG SHAPE (carousel + modal) ── */
-  /* pointed-left price tag via clip-path; border via multi-direction drop-shadow */
   .price-tag {
     position: absolute;
     background: var(--yellow);
@@ -619,31 +629,27 @@
     letter-spacing: 0.5px;
     white-space: nowrap;
     pointer-events: none;
-    /* pentagon: pointed on left, rect on right */
-    clip-path: polygon(18px 0%, 100% 0%, 100% 100%, 18px 100%, 0% 50%);
-    filter:
-      drop-shadow( 2px  2px 0 var(--navy))
-      drop-shadow(-2px  2px 0 var(--navy))
-      drop-shadow( 2px -2px 0 var(--navy))
-      drop-shadow(-2px -2px 0 var(--navy))
-      drop-shadow( 0px  4px 0 var(--navy));
+    border: 3px solid var(--navy);
+    border-radius: 10px 10px 10px 10px;
+    box-shadow: 3px 3px 0 var(--navy);
+    padding-left: 22px; /* room for the hole */
   }
-  /* the little hole near the point */
-  .price-tag::after {
+  /* string-hole dot on the left */
+  .price-tag::before {
     content: '';
     position: absolute;
-    left: 22px; top: 50%;
+    left: 8px; top: 50%;
     transform: translateY(-50%);
-    width: 7px; height: 7px;
-    background: var(--navy);
+    width: 8px; height: 8px;
+    background: var(--white);
+    border: 2.5px solid var(--navy);
     border-radius: 50%;
-    opacity: 0.5;
   }
 
   .c-price-chip {
-    top: auto; bottom: 12px; right: 0;
-    font-size: 14px;
-    padding: 5px 14px 5px 26px;
+    top: auto; bottom: 12px; right: 6px;
+    font-size: 13px;
+    padding: 4px 12px 4px 26px;
     z-index: 4;
     transform: rotate(-6deg);
     transform-origin: right center;
@@ -652,6 +658,12 @@
   @keyframes chipPop {
     0%   { transform: rotate(-20deg) scale(0) translateX(10px); opacity: 0; }
     100% { transform: rotate(-6deg)  scale(1) translateX(0);    opacity: 1; }
+  }
+
+  /* modal price chip sizing */
+  .modal-price-chip {
+    font-size: 16px;
+    padding: 6px 16px 6px 30px;
   }
 
   .c-tap-hint {
@@ -864,7 +876,10 @@
       <div class="topbar-title">✦ sticker board</div>
       <div class="topbar-sub" id="page-sub">discover</div>
     </div>
-    <div class="topbar-badge" id="top-badge">0 items</div>
+    <div class="topbar-right">
+      <div class="topbar-badge" id="top-badge">0 items</div>
+      <div class="topbar-total" id="top-total"></div>
+    </div>
   </div>
 
   <!-- CAROUSEL PAGE -->
@@ -1300,16 +1315,36 @@
     if (id === 'carousel') { startAuto(); renderCarousel(); }
     else { stopAuto(); }
     if (id === 'library') renderLibrary();
-    updateBadge();
+    else updateBadge();
   }
 
   document.querySelectorAll('.tab-btn').forEach(b => {
     b.addEventListener('click', () => showPage(b.dataset.page));
   });
 
-  function updateBadge() {
-    const n = stickers.length;
-    document.getElementById('top-badge').textContent = n + (n === 1 ? ' item' : ' items');
+  function parsePrice(p) {
+    if (!p) return null;
+    const n = parseFloat(String(p).replace(/[^0-9.]/g, ''));
+    return isNaN(n) ? null : n;
+  }
+
+  function updateBadge(filterCat) {
+    const scope = filterCat && filterCat !== 'All'
+      ? stickers.filter(s => s.cat === filterCat)
+      : stickers;
+    const n = scope.length;
+    const label = filterCat && filterCat !== 'All' ? filterCat : null;
+    document.getElementById('top-badge').textContent =
+      (label ? label + ': ' : '') + n + (n === 1 ? ' item' : ' items');
+
+    const total = scope.reduce((sum, s) => sum + (parsePrice(s.price) || 0), 0);
+    const totalEl = document.getElementById('top-total');
+    if (total > 0) {
+      totalEl.textContent = '🛍 $' + total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      totalEl.classList.add('visible');
+    } else {
+      totalEl.classList.remove('visible');
+    }
   }
 
   /* ── AUTOPLAY ── */
@@ -1530,6 +1565,7 @@
 
   /* ── LIBRARY ── */
   function renderLibrary() {
+    updateBadge(libFilter);
     const pills = document.getElementById('lib-pills');
     const grid = document.getElementById('lib-grid');
     const usedCats = ['All', ...Object.keys(CAT_EMOJI).filter(c => stickers.some(s => s.cat === c))];
