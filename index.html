@@ -174,18 +174,6 @@
     font-size: 11px; font-weight: 700; color: #666;
     text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;
   }
-  .c-price {
-    font-family: 'Fredoka One', cursive;
-    font-size: 18px; color: var(--theme-btn);
-    margin-bottom: 8px; letter-spacing: 0.3px;
-    transition: color 0.4s ease;
-  }
-  .c-link {
-    display: inline-flex; align-items: center; gap: 4px;
-    font-size: 12px; font-weight: 700;
-    color: #185FA5; text-decoration: none;
-  }
-  .c-link i { font-size: 13px; }
 
   /* ── CATEGORY ROWS (below carousel) ── */
   #cat-sections { display: flex; flex-direction: column; gap: 18px; width: 100%; }
@@ -588,6 +576,265 @@
     60%  { transform: scale(1.1) rotate(3deg);   opacity: 1; }
     100% { transform: scale(1)   rotate(0deg);   opacity: 1; }
   }
+
+  /* ── CAROUSEL POLISH ── */
+  .discover-header {
+    display: flex; align-items: center; justify-content: center;
+    gap: 16px;
+    width: 100%;
+    padding: 0 16px;
+  }
+  .discover-title {
+    font-family: 'Fredoka One', cursive;
+    font-size: 22px;
+    color: var(--navy);
+    letter-spacing: 2.5px;
+    text-shadow: 2px 2px 0 var(--yellow);
+  }
+  .discover-header .ds-spark {
+    font-size: 20px;
+    color: var(--theme-btn);
+    display: inline-block;
+    animation: dsRotate 4s ease-in-out infinite;
+  }
+  .discover-header .ds-spark.r { animation-delay: 0.6s; }
+  @keyframes dsRotate {
+    0%, 100% { transform: rotate(0) scale(1); }
+    50%      { transform: rotate(180deg) scale(1.3); }
+  }
+
+  .slide-window {
+    box-shadow: 0 6px 0 var(--navy), 0 12px 24px rgba(26, 26, 46, 0.18);
+    cursor: pointer;
+  }
+  .c-img-wrap { position: relative; }
+
+  .c-price-chip {
+    position: absolute;
+    top: 14px; right: 14px;
+    background: var(--yellow);
+    color: var(--navy);
+    font-family: 'Fredoka One', cursive;
+    font-size: 15px;
+    padding: 5px 13px;
+    border: 3px solid var(--navy);
+    border-radius: 14px;
+    letter-spacing: 0.5px;
+    box-shadow: 0 3px 0 var(--navy);
+    z-index: 4;
+    transform: rotate(8deg);
+    animation: chipPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+    pointer-events: none;
+  }
+  @keyframes chipPop {
+    0%   { transform: rotate(20deg) scale(0); opacity: 0; }
+    100% { transform: rotate(8deg)  scale(1); opacity: 1; }
+  }
+
+  .c-tap-hint {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 11px; font-weight: 700;
+    color: var(--theme-btn);
+    text-transform: uppercase; letter-spacing: 0.6px;
+    margin-top: 4px;
+  }
+  .c-tap-hint i {
+    font-size: 14px;
+    animation: tapPulse 1.4s ease-in-out infinite;
+  }
+  @keyframes tapPulse {
+    0%, 100% { transform: translateY(0) scale(1); }
+    50%      { transform: translateY(-2px) scale(1.15); }
+  }
+
+  /* decorative drifting sparkles in the carousel background */
+  .bg-sparkles {
+    position: absolute; inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+    z-index: 0;
+  }
+  .bg-sparkles .bs {
+    position: absolute;
+    font-size: 14px;
+    color: var(--theme-dot);
+    opacity: 0.55;
+    animation: bsDrift 9s ease-in-out infinite;
+  }
+  @keyframes bsDrift {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    50%      { transform: translateY(-22px) rotate(180deg); }
+  }
+  #page-carousel > * { position: relative; z-index: 1; }
+
+  /* ── PASTE FIELDS (replace url/link inputs) ── */
+  .paste-field {
+    width: 100%; padding: 12px 14px;
+    border-radius: 12px;
+    border: 2.5px dashed #c4b5ff;
+    background: var(--white);
+    font-family: 'Nunito', sans-serif;
+    cursor: pointer;
+    display: flex; align-items: center; gap: 10px;
+    font-size: 13px; font-weight: 700;
+    color: #888;
+    transition: border-color 0.15s, background 0.15s, color 0.15s;
+    min-height: 46px;
+  }
+  .paste-field:active { background: #f8f4ff; }
+  .paste-field .pf-icon {
+    font-size: 18px; color: var(--theme-btn);
+    flex-shrink: 0;
+    display: flex; align-items: center;
+  }
+  .paste-field .pf-label {
+    flex: 1;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    min-width: 0;
+  }
+  .paste-field.has-value {
+    border-style: solid;
+    border-color: #0F6E56;
+    background: #f0fff6;
+    color: var(--navy);
+  }
+  .paste-field.has-value .pf-icon { color: #0F6E56; }
+  .paste-clear {
+    width: 26px; height: 26px; border-radius: 50%;
+    background: var(--red); color: var(--white);
+    border: 2px solid var(--navy);
+    font-size: 13px; font-weight: 700; font-family: sans-serif;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+    line-height: 1;
+    padding: 0;
+  }
+
+  /* ── DETAIL MODAL ── */
+  .modal-backdrop {
+    position: fixed; inset: 0;
+    background: rgba(26, 26, 46, 0.72);
+    z-index: 100;
+    display: none;
+    align-items: center; justify-content: center;
+    padding: 24px;
+    animation: mFade 0.22s ease both;
+  }
+  .modal-backdrop.open { display: flex; }
+  @keyframes mFade { from { opacity: 0 } to { opacity: 1 } }
+
+  .modal-card {
+    width: 100%; max-width: 360px;
+    background: var(--white);
+    border-radius: 24px;
+    border: 4px solid var(--navy);
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 8px 0 var(--navy), 0 18px 40px rgba(0,0,0,0.32);
+    animation: mPop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  }
+  @keyframes mPop {
+    0%   { transform: scale(0.5) rotate(-5deg); opacity: 0; }
+    60%  { transform: scale(1.05) rotate(2deg); opacity: 1; }
+    100% { transform: scale(1)   rotate(0);    opacity: 1; }
+  }
+  .modal-close {
+    position: absolute; top: 10px; right: 10px;
+    width: 38px; height: 38px; border-radius: 50%;
+    background: var(--red); color: var(--white);
+    border: 3px solid var(--navy);
+    font-size: 18px; font-weight: 700; font-family: sans-serif;
+    cursor: pointer; z-index: 4;
+    display: flex; align-items: center; justify-content: center;
+    line-height: 1;
+    box-shadow: 0 3px 0 var(--navy);
+    transition: transform 0.12s;
+  }
+  .modal-close:active { transform: scale(0.92); }
+
+  .modal-img-wrap {
+    width: 100%; aspect-ratio: 1/1;
+    background: var(--theme-mid);
+    display: flex; align-items: center; justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .modal-img-wrap img {
+    width: 100%; height: 100%; object-fit: contain; padding: 22px;
+  }
+  .modal-img-wrap .c-no-img i { font-size: 60px; }
+
+  .modal-new-tag {
+    position: absolute; top: 14px; left: 14px;
+    background: var(--red); color: var(--yellow);
+    font-family: 'Fredoka One', cursive;
+    font-size: 14px;
+    padding: 6px 14px;
+    border: 3px solid var(--navy);
+    border-radius: 12px;
+    letter-spacing: 0.7px;
+    box-shadow: 0 3px 0 var(--navy);
+    transform: rotate(-8deg);
+    animation: tagWiggle 1.8s ease-in-out infinite;
+    z-index: 3;
+  }
+
+  .modal-price-chip {
+    position: absolute;
+    top: 14px; right: 14px;
+    background: var(--yellow);
+    color: var(--navy);
+    font-family: 'Fredoka One', cursive;
+    font-size: 17px;
+    padding: 6px 14px;
+    border: 3px solid var(--navy);
+    border-radius: 14px;
+    letter-spacing: 0.5px;
+    box-shadow: 0 3px 0 var(--navy);
+    transform: rotate(8deg);
+    z-index: 3;
+  }
+
+  .modal-info {
+    padding: 18px 20px 6px;
+    border-top: 3px solid var(--navy);
+  }
+  .modal-cat {
+    font-size: 11px; font-weight: 700; color: #666;
+    text-transform: uppercase; letter-spacing: 0.6px;
+    margin-bottom: 6px;
+  }
+  .modal-name {
+    font-family: 'Fredoka One', cursive;
+    font-size: 22px; color: var(--navy);
+    line-height: 1.1;
+    word-wrap: break-word;
+  }
+
+  .modal-bag-btn {
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    margin: 16px 18px 20px;
+    padding: 16px 20px;
+    background: var(--red); color: var(--white);
+    border: 3px solid var(--navy);
+    border-radius: 18px;
+    font-family: 'Fredoka One', cursive;
+    font-size: 17px; letter-spacing: 1px;
+    text-transform: uppercase;
+    text-decoration: none;
+    box-shadow: 0 5px 0 var(--navy);
+    transition: transform 0.12s, box-shadow 0.12s, background 0.15s;
+  }
+  .modal-bag-btn:active {
+    transform: translateY(3px);
+    box-shadow: 0 2px 0 var(--navy);
+  }
+  .modal-bag-btn i { font-size: 22px; }
+  .modal-bag-btn.disabled {
+    background: #aaa;
+    pointer-events: none;
+  }
 </style>
 </head>
 <body>
@@ -604,6 +851,8 @@
 
   <!-- CAROUSEL PAGE -->
   <div class="page active" id="page-carousel">
+    <div class="bg-sparkles" id="bg-sparkles"></div>
+
     <div class="carousel-scene">
 
       <div id="c-empty" class="c-empty" style="display:none">
@@ -613,6 +862,12 @@
       </div>
 
       <div id="c-main" style="width:100%;display:flex;flex-direction:column;align-items:center;gap:14px">
+        <div class="discover-header">
+          <span class="ds-spark">✦</span>
+          <span class="discover-title">DISCOVER</span>
+          <span class="ds-spark r">✦</span>
+        </div>
+
         <div class="slide-window" id="slide-window">
           <div class="c-card" id="c-card">
             <div class="c-img-wrap" id="c-img-wrap">
@@ -621,13 +876,13 @@
                 <span>add stickers!</span>
               </div>
             </div>
+            <div class="c-price-chip" id="c-price-chip" style="display:none"></div>
             <div class="c-info">
               <div class="c-name" id="c-name">—</div>
               <div class="c-cat" id="c-cat">—</div>
-              <div class="c-price" id="c-price" style="display:none"></div>
-              <a class="c-link" id="c-link" href="#" style="display:none" target="_blank">
-                <i class="ti ti-shopping-cart"></i> view product
-              </a>
+              <div class="c-tap-hint" id="c-tap-hint" style="display:none">
+                <i class="ti ti-hand-finger"></i> tap card for details
+              </div>
             </div>
           </div>
         </div>
@@ -674,10 +929,13 @@
           <span>or paste from clipboard (⌘V / long-press → paste)</span>
         </div>
       </div>
-      <p class="paste-note">you can also paste an image URL below</p>
+      <p class="paste-note">…or use the paste buttons below</p>
       <div class="fl">
         <label>image URL</label>
-        <input class="fi" id="url-in" type="url" inputmode="url" placeholder="https://...">
+        <div class="paste-field" id="url-in" data-placeholder="tap to paste image URL">
+          <span class="pf-icon"><i class="ti ti-clipboard"></i></span>
+          <span class="pf-label">tap to paste image URL</span>
+        </div>
       </div>
       <div class="fl">
         <label>product name</label>
@@ -685,7 +943,10 @@
       </div>
       <div class="fl">
         <label>product link</label>
-        <input class="fi" id="link-in" type="url" inputmode="url" placeholder="https://...">
+        <div class="paste-field" id="link-in" data-placeholder="tap to paste product link">
+          <span class="pf-icon"><i class="ti ti-clipboard"></i></span>
+          <span class="pf-label">tap to paste product link</span>
+        </div>
       </div>
       <div class="fl">
         <label>price (optional)</label>
@@ -723,6 +984,22 @@
 </div>
 
 <input type="file" id="file-in" accept="image/*" style="display:none">
+
+<!-- DETAIL MODAL -->
+<div class="modal-backdrop" id="detail-modal" aria-hidden="true">
+  <div class="modal-card" id="detail-card" role="dialog" aria-modal="true">
+    <button class="modal-close" id="detail-close" aria-label="close">×</button>
+    <div class="modal-img-wrap" id="detail-img-wrap"></div>
+    <div class="modal-info">
+      <div class="modal-cat" id="detail-cat"></div>
+      <div class="modal-name" id="detail-name"></div>
+    </div>
+    <a class="modal-bag-btn" id="detail-bag" target="_blank" rel="noopener" href="#">
+      <i class="ti ti-shopping-bag"></i>
+      <span id="detail-bag-text">shop now</span>
+    </a>
+  </div>
+</div>
 
 <script>
   const CAT_EMOJI = { Clothes:'👗', Accessories:'👜', Jewelry:'💍', Shoes:'👟', Beauty:'💄', Home:'🏠', Other:'📌' };
@@ -1047,16 +1324,13 @@
         const priceHtml = s.price ? `<div class="cat-tile-price">${escapeAttr(formatPrice(s.price))}</div>` : '';
         const newBadge = newIds.has(s.id) ? `<div class="new-tag">NEW!</div>` : '';
         const cartBtn = s.link ? `<div class="cat-tile-cart"><i class="ti ti-shopping-cart"></i></div>` : '';
-        const linkAttrs = s.link
-          ? `href="${escapeAttr(s.link)}" target="_blank" rel="noopener"`
-          : `href="#" onclick="event.preventDefault()"`;
-        return `<a class="cat-tile" ${linkAttrs}>
+        return `<div class="cat-tile" data-id="${s.id}">
           <div class="cat-tile-img">${imgInner}${newBadge}${cartBtn}</div>
           <div class="cat-tile-meta">
             <div class="cat-tile-name">${escapeAttr(s.name || 'untitled')}</div>
             ${priceHtml}
           </div>
-        </a>`;
+        </div>`;
       }).join('');
       return `
         <div class="cat-section">
@@ -1081,6 +1355,13 @@
         showPage('library');
       });
     });
+    wrap.querySelectorAll('.cat-tile').forEach(t => {
+      t.addEventListener('click', () => {
+        const id = parseInt(t.dataset.id);
+        const sticker = stickers.find(s => s.id === id);
+        if (sticker) openDetail(sticker);
+      });
+    });
   }
 
   function populateCard(s) {
@@ -1098,12 +1379,19 @@
     }
     document.getElementById('c-name').textContent = s.name || 'untitled';
     document.getElementById('c-cat').textContent = (CAT_EMOJI[s.cat] || '') + ' ' + s.cat;
-    const priceEl = document.getElementById('c-price');
-    if (s.price) { priceEl.textContent = formatPrice(s.price); priceEl.style.display = 'block'; }
-    else { priceEl.style.display = 'none'; }
-    const link = document.getElementById('c-link');
-    if (s.link) { link.href = s.link; link.style.display = 'inline-flex'; }
-    else { link.style.display = 'none'; }
+    const chip = document.getElementById('c-price-chip');
+    if (s.price) {
+      chip.textContent = formatPrice(s.price);
+      chip.style.display = 'block';
+      // restart pop animation when card changes
+      chip.style.animation = 'none';
+      void chip.offsetWidth;
+      chip.style.animation = '';
+    } else {
+      chip.style.display = 'none';
+    }
+    const hint = document.getElementById('c-tap-hint');
+    hint.style.display = (s.link || s.img) ? 'inline-flex' : 'none';
 
     // NEW! tag + sparkle burst for the 3 most recent stickers
     const card = document.getElementById('c-card');
@@ -1229,7 +1517,7 @@
         : `<div class="lib-no-img"><i class="ti ti-photo-off"></i></div>`;
       const newBadge = newIds.has(s.id) ? `<div class="new-tag">NEW!</div>` : '';
       const cartBtn = s.link
-        ? `<a class="lib-cart" href="${escapeAttr(s.link)}" target="_blank" rel="noopener" aria-label="view product"><i class="ti ti-shopping-cart"></i></a>`
+        ? `<button class="lib-cart" type="button" aria-label="view product"><i class="ti ti-shopping-cart"></i></button>`
         : '';
       const priceHtml = s.price ? `<div class="lib-price">${escapeAttr(formatPrice(s.price))}</div>` : '';
       const popClass = (s.id === justAddedId) ? ' just-added' : '';
@@ -1271,6 +1559,15 @@
         saveAll(); renderLibrary(); updateBadge();
       });
     });
+
+    grid.querySelectorAll('.lib-card').forEach(card => {
+      card.addEventListener('click', e => {
+        if (e.target.closest('.del-x')) return;
+        const idx = parseInt(card.dataset.idx);
+        const sticker = stickers[idx];
+        if (sticker) openDetail(sticker);
+      });
+    });
   }
 
   /* ── ADD PAGE ── */
@@ -1287,9 +1584,9 @@
         <p>tap to upload image</p>
         <span>or paste from clipboard (⌘V / long-press → paste)</span>
       </div>`;
-    document.getElementById('url-in').value = '';
+    urlField.set('');
+    linkField.set('');
     document.getElementById('name-in').value = '';
-    document.getElementById('link-in').value = '';
     document.getElementById('price-in').value = '';
     document.getElementById('cat-sel').value = 'Clothes';
   }
@@ -1310,10 +1607,83 @@
     e.target.value = '';
   });
 
-  document.getElementById('url-in').addEventListener('input', e => {
-    const v = e.target.value.trim();
-    if (v) setPreview(v);
-  });
+  /* ── PASTE FIELDS ── */
+  function isValidUrl(s) {
+    try { const u = new URL(s); return u.protocol === 'http:' || u.protocol === 'https:'; }
+    catch { return false; }
+  }
+  function truncMiddle(s, len) {
+    if (s.length <= len) return s;
+    const keep = Math.floor((len - 1) / 2);
+    return s.slice(0, keep) + '…' + s.slice(-keep);
+  }
+  function setupPasteField(id, opts) {
+    const el = document.getElementById(id);
+    const labelEl = el.querySelector('.pf-label');
+    const placeholder = el.dataset.placeholder;
+    let value = '';
+    let clearBtn = null;
+
+    function render() {
+      if (value) {
+        el.classList.add('has-value');
+        labelEl.textContent = truncMiddle(value, 32);
+        if (!clearBtn) {
+          clearBtn = document.createElement('button');
+          clearBtn.type = 'button';
+          clearBtn.className = 'paste-clear';
+          clearBtn.setAttribute('aria-label', 'clear');
+          clearBtn.textContent = '×';
+          clearBtn.addEventListener('click', e => {
+            e.stopPropagation();
+            value = '';
+            render();
+            opts.onSet && opts.onSet('');
+          });
+          el.appendChild(clearBtn);
+        }
+      } else {
+        el.classList.remove('has-value');
+        labelEl.textContent = placeholder;
+        if (clearBtn) { clearBtn.remove(); clearBtn = null; }
+      }
+    }
+
+    async function readClip() {
+      let txt = '';
+      try {
+        if (navigator.clipboard && navigator.clipboard.readText) {
+          txt = (await navigator.clipboard.readText() || '').trim();
+        }
+      } catch { /* permission denied or unavailable */ }
+      if (!txt) {
+        // fallback so user always has an escape hatch
+        txt = (prompt('Paste your URL:', '') || '').trim();
+      }
+      if (!txt) return;
+      if (!opts.validate(txt)) {
+        alert("That doesn't look like a valid URL (needs http:// or https://).");
+        return;
+      }
+      value = txt;
+      render();
+      opts.onSet && opts.onSet(value);
+    }
+
+    el.addEventListener('click', e => {
+      if (e.target.closest('.paste-clear')) return;
+      if (value) return;
+      readClip();
+    });
+
+    return {
+      get: () => value,
+      set: v => { value = v || ''; render(); },
+    };
+  }
+
+  const urlField  = setupPasteField('url-in',  { validate: isValidUrl, onSet: v => { if (v) setPreview(v); } });
+  const linkField = setupPasteField('link-in', { validate: isValidUrl });
 
   document.addEventListener('paste', e => {
     const items = e.clipboardData?.items;
@@ -1335,9 +1705,9 @@
 
   document.getElementById('save-btn').addEventListener('click', async () => {
     const name  = document.getElementById('name-in').value.trim();
-    const link  = document.getElementById('link-in').value.trim();
+    const link  = linkField.get();
     const cat   = document.getElementById('cat-sel').value;
-    const url   = document.getElementById('url-in').value.trim();
+    const url   = urlField.get();
     const price = document.getElementById('price-in').value.trim();
     const img   = pendImg || url || null;
 
@@ -1369,6 +1739,87 @@
     }, 900);
   });
 
+  /* ── DETAIL MODAL ── */
+  function openDetail(sticker) {
+    if (!sticker) return;
+    stopAuto();
+    document.getElementById('detail-name').textContent = sticker.name || 'untitled';
+    document.getElementById('detail-cat').textContent =
+      (CAT_EMOJI[sticker.cat] || '') + ' ' + sticker.cat;
+
+    const wrap = document.getElementById('detail-img-wrap');
+    wrap.innerHTML = sticker.img
+      ? `<img src="${escapeAttr(sticker.img)}" alt="${escapeAttr(sticker.name || '')}">`
+      : `<div class="c-no-img"><i class="ti ti-photo-off"></i><span>no image</span></div>`;
+
+    if (getNewIds().has(sticker.id)) {
+      const t = document.createElement('div');
+      t.className = 'modal-new-tag';
+      t.textContent = 'NEW!';
+      wrap.appendChild(t);
+    }
+    if (sticker.price) {
+      const p = document.createElement('div');
+      p.className = 'modal-price-chip';
+      p.textContent = formatPrice(sticker.price);
+      wrap.appendChild(p);
+    }
+
+    const bag = document.getElementById('detail-bag');
+    const bagText = document.getElementById('detail-bag-text');
+    if (sticker.link) {
+      bag.href = sticker.link;
+      bag.classList.remove('disabled');
+      bagText.textContent = 'shop now';
+    } else {
+      bag.href = '#';
+      bag.classList.add('disabled');
+      bagText.textContent = 'no link saved';
+    }
+
+    document.getElementById('detail-modal').classList.add('open');
+  }
+  function closeDetail() {
+    document.getElementById('detail-modal').classList.remove('open');
+    if (document.getElementById('page-carousel').classList.contains('active')) {
+      startAuto();
+    }
+  }
+  document.getElementById('detail-close').addEventListener('click', closeDetail);
+  document.getElementById('detail-modal').addEventListener('click', e => {
+    if (e.target.id === 'detail-modal') closeDetail();
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' &&
+        document.getElementById('detail-modal').classList.contains('open')) {
+      closeDetail();
+    }
+  });
+
+  // tap on the main carousel card → detail modal
+  document.getElementById('slide-window').addEventListener('click', () => {
+    if (stickers.length === 0) return;
+    openDetail(stickers[order[cidx]]);
+  });
+
+  /* ── DECORATIVE BG SPARKLES (carousel only) ── */
+  function spawnBgSparkles() {
+    const wrap = document.getElementById('bg-sparkles');
+    if (!wrap || wrap.children.length) return;
+    const glyphs = ['✦', '✧', '✶', '✺', '★'];
+    for (let i = 0; i < 14; i++) {
+      const s = document.createElement('span');
+      s.className = 'bs';
+      s.textContent = glyphs[i % glyphs.length];
+      s.style.top = Math.random() * 100 + '%';
+      s.style.left = Math.random() * 100 + '%';
+      s.style.fontSize = (10 + Math.random() * 12) + 'px';
+      s.style.animationDelay = (Math.random() * 6) + 's';
+      s.style.animationDuration = (7 + Math.random() * 6) + 's';
+      wrap.appendChild(s);
+    }
+  }
+
   /* ── INIT ── */
   async function boot() {
     try {
@@ -1397,6 +1848,7 @@
         stickers = JSON.parse(localStorage.getItem(LS_KEY) || '[]');
       } catch { stickers = []; }
     }
+    spawnBgSparkles();
     renderCarousel();
     updateBadge();
     startAuto();
