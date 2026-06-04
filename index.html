@@ -667,49 +667,45 @@
   }
   #page-carousel > * { position: relative; z-index: 1; }
 
-  /* ── PASTE FIELDS (replace url/link inputs) ── */
-  .paste-field {
-    width: 100%; padding: 12px 14px;
+  /* ── PASTE FIELDS ── */
+  .paste-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 11px 14px;
     border-radius: 12px;
     border: 2.5px dashed #c4b5ff;
     background: var(--white);
-    font-family: 'Nunito', sans-serif;
-    cursor: pointer;
-    display: flex; align-items: center; gap: 10px;
-    font-size: 13px; font-weight: 700;
-    color: #888;
-    transition: border-color 0.15s, background 0.15s, color 0.15s;
+    transition: border-color 0.15s, background 0.15s;
+    cursor: text;
     min-height: 46px;
   }
-  .paste-field:active { background: #f8f4ff; }
-  .paste-field .pf-icon {
-    font-size: 18px; color: var(--theme-btn);
-    flex-shrink: 0;
+  .paste-row:focus-within { border-color: #9f86ff; border-style: solid; }
+  .paste-row.filled { border-color: #0F6E56; border-style: solid; background: #f0fff6; }
+  .paste-row .pr-icon {
+    font-size: 18px; flex-shrink: 0;
+    color: #c4b5ff;
     display: flex; align-items: center;
+    transition: color 0.15s;
   }
-  .paste-field .pf-label {
-    flex: 1;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    min-width: 0;
-  }
-  .paste-field.has-value {
-    border-style: solid;
-    border-color: #0F6E56;
-    background: #f0fff6;
+  .paste-row:focus-within .pr-icon,
+  .paste-row.filled .pr-icon { color: #0F6E56; }
+  .paste-row .pr-input {
+    flex: 1; min-width: 0;
+    border: none; background: transparent; outline: none;
+    font-size: 13px; font-weight: 700;
+    font-family: 'Nunito', sans-serif;
     color: var(--navy);
   }
-  .paste-field.has-value .pf-icon { color: #0F6E56; }
+  .paste-row .pr-input::placeholder { color: #bbb; font-weight: 600; }
   .paste-clear {
-    width: 26px; height: 26px; border-radius: 50%;
+    width: 24px; height: 24px; border-radius: 50%;
     background: var(--red); color: var(--white);
     border: 2px solid var(--navy);
     font-size: 13px; font-weight: 700; font-family: sans-serif;
     display: flex; align-items: center; justify-content: center;
-    cursor: pointer;
-    flex-shrink: 0;
-    line-height: 1;
-    padding: 0;
+    cursor: pointer; flex-shrink: 0; line-height: 1; padding: 0;
+    display: none;
   }
+  .paste-row.filled .paste-clear { display: flex; }
 
   /* ── DETAIL MODAL ── */
   .modal-backdrop {
@@ -929,12 +925,14 @@
           <span>or paste from clipboard (⌘V / long-press → paste)</span>
         </div>
       </div>
-      <p class="paste-note">…or use the paste buttons below</p>
+      <p class="paste-note">…or paste an image URL below</p>
       <div class="fl">
-        <label>paste image / URL</label>
-        <div class="paste-field" id="url-in" data-placeholder="tap to paste image or URL">
-          <span class="pf-icon"><i class="ti ti-clipboard"></i></span>
-          <span class="pf-label">tap to paste image or URL</span>
+        <label>image URL</label>
+        <div class="paste-row" id="url-in">
+          <span class="pr-icon"><i class="ti ti-clipboard"></i></span>
+          <input class="pr-input" id="url-in-input" type="url" inputmode="url"
+                 placeholder="tap &amp; paste image URL" autocomplete="off" autocorrect="off" autocapitalize="off">
+          <button class="paste-clear" type="button" id="url-in-clear" aria-label="clear">×</button>
         </div>
       </div>
       <div class="fl">
@@ -943,9 +941,11 @@
       </div>
       <div class="fl">
         <label>product link</label>
-        <div class="paste-field" id="link-in" data-placeholder="tap to paste product link">
-          <span class="pf-icon"><i class="ti ti-clipboard"></i></span>
-          <span class="pf-label">tap to paste product link</span>
+        <div class="paste-row" id="link-in">
+          <span class="pr-icon"><i class="ti ti-clipboard"></i></span>
+          <input class="pr-input" id="link-in-input" type="url" inputmode="url"
+                 placeholder="tap &amp; paste product link" autocomplete="off" autocorrect="off" autocapitalize="off">
+          <button class="paste-clear" type="button" id="link-in-clear" aria-label="clear">×</button>
         </div>
       </div>
       <div class="fl">
@@ -1608,164 +1608,47 @@
   });
 
   /* ── PASTE FIELDS ── */
-  function isValidUrl(s) {
-    try { const u = new URL(s); return u.protocol === 'http:' || u.protocol === 'https:'; }
-    catch { return false; }
-  }
-  function truncMiddle(s, len) {
-    if (s.length <= len) return s;
-    const keep = Math.floor((len - 1) / 2);
-    return s.slice(0, keep) + '…' + s.slice(-keep);
-  }
+  function setupPasteField(wrapperId, inputId, clearId, onValue) {
+    const wrap  = document.getElementById(wrapperId);
+    const input = document.getElementById(inputId);
+    const clear = document.getElementById(clearId);
 
-  async function readClipboard() {
-    // Returns { kind: 'image', blob } | { kind: 'text', text } | null
-    if (!navigator.clipboard) return null;
-
-    if (navigator.clipboard.read) {
-      try {
-        const items = await navigator.clipboard.read();
-        // prefer image
-        for (const item of items) {
-          const imgType = (item.types || []).find(t => t && t.startsWith('image/'));
-          if (imgType) {
-            const blob = await item.getType(imgType);
-            return { kind: 'image', blob };
-          }
-        }
-        // then text
-        for (const item of items) {
-          if ((item.types || []).includes('text/plain')) {
-            const blob = await item.getType('text/plain');
-            const text = (await blob.text() || '').trim();
-            if (text) return { kind: 'text', text };
-          }
-        }
-      } catch (e) {
-        console.warn('clipboard.read failed', e);
-      }
+    function mark(filled) {
+      wrap.classList.toggle('filled', filled);
     }
-    // fallback to text-only read
-    if (navigator.clipboard.readText) {
-      try {
-        const text = (await navigator.clipboard.readText() || '').trim();
-        if (text) return { kind: 'text', text };
-      } catch (e) { /* permission denied */ }
-    }
-    return null;
-  }
 
-  function blobToDataURL(blob) {
-    return new Promise((resolve, reject) => {
-      const r = new FileReader();
-      r.onload = () => resolve(r.result);
-      r.onerror = () => reject(r.error);
-      r.readAsDataURL(blob);
+    input.addEventListener('input', () => {
+      const v = input.value.trim();
+      mark(!!v);
+      if (v) onValue && onValue(v);
     });
-  }
 
-  function setupPasteField(id, handler) {
-    const el = document.getElementById(id);
-    const labelEl = el.querySelector('.pf-label');
-    const placeholder = el.dataset.placeholder;
-    let value = '';
-    let clearBtn = null;
+    clear.addEventListener('click', e => {
+      e.stopPropagation();
+      input.value = '';
+      mark(false);
+      onValue && onValue('');
+    });
 
-    function ensureClear() {
-      if (clearBtn) return;
-      clearBtn = document.createElement('button');
-      clearBtn.type = 'button';
-      clearBtn.className = 'paste-clear';
-      clearBtn.setAttribute('aria-label', 'clear');
-      clearBtn.textContent = '×';
-      clearBtn.addEventListener('click', e => {
-        e.stopPropagation();
-        reset();
-      });
-      el.appendChild(clearBtn);
-    }
-    function removeClear() {
-      if (clearBtn) { clearBtn.remove(); clearBtn = null; }
-    }
-    function set(v, label) {
-      value = v;
-      el.classList.add('has-value');
-      labelEl.textContent = label || truncMiddle(v, 32);
-      ensureClear();
-    }
-    function reset() {
-      value = '';
-      el.classList.remove('has-value');
-      labelEl.textContent = placeholder;
-      removeClear();
-      handler.onReset && handler.onReset();
-    }
-
-    el.addEventListener('click', e => {
-      if (e.target.closest('.paste-clear')) return;
-      if (value) return;
-      handler.onPaste({ set, reset });
+    // tapping anywhere on the row focuses the input
+    wrap.addEventListener('click', e => {
+      if (e.target === clear) return;
+      input.focus();
     });
 
     return {
-      get: () => value,
-      set: v => v ? set(v) : reset(),
+      get: () => input.value.trim(),
+      set: v => {
+        input.value = v || '';
+        mark(!!(v));
+        if (v) onValue && onValue(v);
+      },
     };
   }
 
-  const urlField = setupPasteField('url-in', {
-    async onPaste({ set }) {
-      const result = await readClipboard();
-      if (!result) {
-        const txt = (prompt('Paste an image URL (or copy an image and try again):', '') || '').trim();
-        if (!txt) return;
-        if (!isValidUrl(txt)) { alert("That doesn't look like a valid URL."); return; }
-        setPreview(txt);
-        set(txt);
-        return;
-      }
-      if (result.kind === 'image') {
-        try {
-          const raw = await blobToDataURL(result.blob);
-          const small = await maybeCompress(raw);
-          setPreview(small);
-          set(small, '✓ image pasted from clipboard');
-        } catch (e) {
-          alert("Couldn't read the image from your clipboard.");
-        }
-        return;
-      }
-      const txt = result.text;
-      if (!isValidUrl(txt)) {
-        alert("Your clipboard has text, but it's not a valid image URL.");
-        return;
-      }
-      setPreview(txt);
-      set(txt);
-    },
-    onReset() {
-      pendImg = null;
-      document.getElementById('dz').innerHTML = `
-        <div class="dz-hint">
-          <i class="ti ti-photo-up"></i>
-          <p>tap to upload image</p>
-          <span>or paste from clipboard (⌘V / long-press → paste)</span>
-        </div>`;
-    },
-  });
-
-  const linkField = setupPasteField('link-in', {
-    async onPaste({ set }) {
-      const result = await readClipboard();
-      let text = (result && result.kind === 'text') ? result.text : '';
-      if (!text) {
-        text = (prompt('Paste your product link:', '') || '').trim();
-      }
-      if (!text) return;
-      if (!isValidUrl(text)) { alert("That doesn't look like a valid URL."); return; }
-      set(text);
-    },
-  });
+  const urlField  = setupPasteField('url-in',  'url-in-input',  'url-in-clear',
+    v => { if (v) setPreview(v); });
+  const linkField = setupPasteField('link-in', 'link-in-input', 'link-in-clear', null);
 
   document.addEventListener('paste', e => {
     const items = e.clipboardData?.items;
