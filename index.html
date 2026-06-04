@@ -737,7 +737,7 @@
     { bg:'#f5f5f5', mid:'#ebebeb', dot:'#c8c8c8', btn:'#444441' },
   ];
 
-  let stickers = JSON.parse(localStorage.getItem('sb-nint-v2') || '[]');
+  let stickers = [];
   let libFilter = 'All';
   let order = [];
   let cidx = 0;
@@ -745,6 +745,63 @@
   let pendImg = null;
   let isAnimating = false;
   let justAddedId = null;
+
+  /* ── INDEXEDDB STORAGE ── */
+  const DB_NAME = 'stickerblast';
+  const STORE = 'stickers';
+  const LS_KEY = 'sb-nint-v2';
+  let dbPromise = null;
+
+  function openDB() {
+    if (dbPromise) return dbPromise;
+    dbPromise = new Promise((resolve, reject) => {
+      if (!('indexedDB' in window)) { reject(new Error('no IndexedDB')); return; }
+      const req = indexedDB.open(DB_NAME, 1);
+      req.onupgradeneeded = () => {
+        const db = req.result;
+        if (!db.objectStoreNames.contains(STORE)) {
+          db.createObjectStore(STORE, { keyPath: 'id' });
+        }
+      };
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+    return dbPromise;
+  }
+
+  async function dbAll() {
+    const db = await openDB();
+    return new Promise((res, rej) => {
+      const tx = db.transaction(STORE, 'readonly');
+      const req = tx.objectStore(STORE).getAll();
+      req.onsuccess = () => res(req.result || []);
+      req.onerror = () => rej(req.error);
+    });
+  }
+
+  async function dbReplaceAll(arr) {
+    const db = await openDB();
+    return new Promise((res, rej) => {
+      const tx = db.transaction(STORE, 'readwrite');
+      const store = tx.objectStore(STORE);
+      store.clear();
+      for (const s of arr) store.put(s);
+      tx.oncomplete = () => res(true);
+      tx.onerror = () => rej(tx.error);
+      tx.onabort = () => rej(tx.error || new Error('aborted'));
+    });
+  }
+
+  async function saveAll() {
+    try {
+      await dbReplaceAll(stickers);
+      return true;
+    } catch (e) {
+      console.error('save failed', e);
+      alert("⚠ Couldn't save — your device storage may be very full. Tap Export to back up, then remove some stickers to free space.");
+      return false;
+    }
+  }
 
   function getNewIds() {
     return new Set(stickers.slice(0, 3).map(s => s.id));
@@ -761,14 +818,40 @@
     return String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   }
 
-  function save() {
-    try {
-      localStorage.setItem('sb-nint-v2', JSON.stringify(stickers));
-      return true;
-    } catch (e) {
-      alert("⚠ Storage full!\n\nTap Export in the Library to back up your stickers, then delete some to free space. Uploaded photos take up the most room.");
-      return false;
-    }
+  /* ── IMAGE COMPRESSION ── */
+  function compressImage(src, maxDim = 1200, quality = 0.82) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        let w = img.naturalWidth || img.width;
+        let h = img.naturalHeight || img.height;
+        if (!w || !h) { reject(new Error('bad dimensions')); return; }
+        if (w > maxDim || h > maxDim) {
+          const ratio = Math.min(maxDim / w, maxDim / h);
+          w = Math.round(w * ratio);
+          h = Math.round(h * ratio);
+        }
+        const c = document.createElement('canvas');
+        c.width = w; c.height = h;
+        const ctx = c.getContext('2d');
+        // white background so transparent PNGs don't get black where alpha was
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, w, h);
+        ctx.drawImage(img, 0, 0, w, h);
+        try {
+          resolve(c.toDataURL('image/jpeg', quality));
+        } catch (e) { reject(e); }
+      };
+      img.onerror = () => reject(new Error('image load failed'));
+      img.src = src;
+    });
+  }
+
+  async function maybeCompress(src) {
+    // only compress data: URLs (uploaded/pasted files). External URLs pass through.
+    if (!src || !src.startsWith('data:')) return src;
+    try { return await compressImage(src); }
+    catch (e) { console.warn('compress failed, using original', e); return src; }
   }
 
   function exportData() {
@@ -795,7 +878,7 @@
       const file = e.target.files[0];
       if (!file) return;
       const reader = new FileReader();
-      reader.onload = ev => {
+      reader.onload = async ev => {
         let imported;
         try {
           imported = JSON.parse(ev.target.result);
@@ -804,7 +887,6 @@
           alert("Couldn't read that file — make sure it's a sticker-board export.");
           return;
         }
-        // assign ids to any legacy entries that lack one so dedup works
         imported.forEach((s, i) => { if (s && !s.id) s.id = Date.now() + i; });
         const existing = new Set(stickers.map(s => s.id));
         const fresh = imported.filter(s => s && s.id && !existing.has(s.id));
@@ -814,13 +896,12 @@
         }
         if (!confirm(`Import ${fresh.length} new sticker${fresh.length === 1 ? '' : 's'}?`)) return;
         stickers = [...fresh, ...stickers];
-        if (save()) {
+        if (await saveAll()) {
           order = shuffle([...Array(stickers.length).keys()]);
           cidx = 0;
           renderLibrary();
           updateBadge();
         } else {
-          // save failed — revert
           stickers = stickers.slice(fresh.length);
         }
       };
@@ -1183,10 +1264,11 @@
     grid.querySelectorAll('.del-x').forEach(btn => {
       btn.addEventListener('click', e => {
         e.stopPropagation();
+        e.preventDefault();
         stickers.splice(parseInt(btn.dataset.idx), 1);
         order = shuffle([...Array(stickers.length).keys()]);
         cidx = 0;
-        save(); renderLibrary(); updateBadge();
+        saveAll(); renderLibrary(); updateBadge();
       });
     });
   }
@@ -1219,7 +1301,11 @@
   document.getElementById('file-in').addEventListener('change', e => {
     const file = e.target.files[0]; if (!file) return;
     const reader = new FileReader();
-    reader.onload = ev => setPreview(ev.target.result);
+    reader.onload = async ev => {
+      setPreview(ev.target.result);  // immediate preview
+      const small = await maybeCompress(ev.target.result);
+      setPreview(small);              // swap in compressed once ready
+    };
     reader.readAsDataURL(file);
     e.target.value = '';
   });
@@ -1236,13 +1322,18 @@
       if (item.type.startsWith('image/')) {
         const file = item.getAsFile();
         const reader = new FileReader();
-        reader.onload = ev => { showPage('add'); setPreview(ev.target.result); };
+        reader.onload = async ev => {
+          showPage('add');
+          setPreview(ev.target.result);
+          const small = await maybeCompress(ev.target.result);
+          setPreview(small);
+        };
         reader.readAsDataURL(file);
       }
     }
   });
 
-  document.getElementById('save-btn').addEventListener('click', () => {
+  document.getElementById('save-btn').addEventListener('click', async () => {
     const name  = document.getElementById('name-in').value.trim();
     const link  = document.getElementById('link-in').value.trim();
     const cat   = document.getElementById('cat-sel').value;
@@ -1254,15 +1345,22 @@
     stickers.unshift(newSticker);
     justAddedId = newSticker.id;
     order = shuffle([...Array(stickers.length).keys()]);
-    // make the new sticker the first one shown in the carousel
     const newPos = order.indexOf(0);
     if (newPos > -1) { [order[0], order[newPos]] = [order[newPos], order[0]]; }
     cidx = 0;
-    save();
+
+    const ok = await saveAll();
+    if (!ok) {
+      // rollback in-memory state so reality matches storage
+      stickers.shift();
+      justAddedId = null;
+      order = shuffle([...Array(stickers.length).keys()]);
+      return;
+    }
+
     updateBadge();
     clearAddForm();
 
-    // show toast briefly then redirect to library
     const toast = document.getElementById('toast');
     toast.style.opacity = '1';
     setTimeout(() => {
@@ -1272,9 +1370,38 @@
   });
 
   /* ── INIT ── */
-  renderCarousel();
-  updateBadge();
-  startAuto();
+  async function boot() {
+    try {
+      stickers = await dbAll();
+      // first run after upgrade: migrate any stickers still sitting in localStorage
+      const lsRaw = localStorage.getItem(LS_KEY);
+      if (!stickers.length && lsRaw) {
+        try {
+          const ls = JSON.parse(lsRaw);
+          if (Array.isArray(ls) && ls.length) {
+            ls.forEach((s, i) => { if (s && !s.id) s.id = Date.now() + i; });
+            stickers = ls;
+            await dbReplaceAll(stickers);
+          }
+        } catch (e) { console.warn('localStorage migration failed', e); }
+      }
+      // free the 5MB localStorage slot once IDB has the data
+      if (lsRaw && stickers.length) {
+        try { localStorage.removeItem(LS_KEY); } catch {}
+      }
+      // sort newest-first by id so unshift-based ordering is restored
+      // (IndexedDB getAll returns insertion order, which after clear+put matches array order)
+    } catch (e) {
+      console.error('IndexedDB unavailable, falling back to localStorage', e);
+      try {
+        stickers = JSON.parse(localStorage.getItem(LS_KEY) || '[]');
+      } catch { stickers = []; }
+    }
+    renderCarousel();
+    updateBadge();
+    startAuto();
+  }
+  boot();
 </script>
 </body>
 </html>
