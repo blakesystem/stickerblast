@@ -865,6 +865,271 @@
     background: #aaa;
     pointer-events: none;
   }
+
+  /* ═══════════════════════════════════════════════
+     GAME SHOP UI POLISH
+     ═══════════════════════════════════════════════ */
+
+  /* Scanline overlay — subtle CRT feel */
+  #shell::after {
+    content: '';
+    position: absolute; inset: 0;
+    background: repeating-linear-gradient(
+      to bottom,
+      transparent 0px, transparent 3px,
+      rgba(0,0,0,0.022) 3px, rgba(0,0,0,0.022) 4px
+    );
+    pointer-events: none;
+    z-index: 998;
+  }
+
+  /* HUD topbar glow + pixel dash trim */
+  .topbar {
+    box-shadow: 0 3px 0 var(--navy), 0 5px 20px rgba(228,0,15,0.45);
+    position: relative;
+  }
+  .topbar::after {
+    content: '';
+    position: absolute;
+    bottom: -6px; left: 0; right: 0; height: 3px;
+    background: repeating-linear-gradient(
+      to right,
+      var(--yellow) 0px, var(--yellow) 8px,
+      transparent 8px, transparent 13px
+    );
+    pointer-events: none;
+  }
+  .topbar-title {
+    animation: hudGlow 4s ease-in-out infinite;
+  }
+  @keyframes hudGlow {
+    0%, 100% { filter: brightness(1); }
+    50%      { filter: brightness(1.3) drop-shadow(0 0 6px rgba(255,255,255,0.5)); }
+  }
+  .topbar-total.visible {
+    animation: goldPulse 2.8s ease-in-out infinite;
+  }
+  @keyframes goldPulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(249,211,8,0); }
+    50%      { box-shadow: 0 0 0 3px rgba(249,211,8,0.5); }
+  }
+
+  /* Tab bar — active glow + press */
+  .tab-btn { transition: color 0.15s, transform 0.1s; }
+  .tab-btn:active { transform: scale(0.86); }
+  .tab-btn.active { text-shadow: 0 0 8px rgba(249,211,8,0.55); }
+  .tab-btn.active i { filter: drop-shadow(0 0 5px rgba(249,211,8,0.9)); }
+
+  /* D-pad nav buttons */
+  .ctrl-btn {
+    border-radius: 10px;
+    box-shadow: 0 5px 0 rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.1);
+  }
+  .ctrl-btn:active {
+    transform: translateY(4px) scale(0.95);
+    box-shadow: 0 1px 0 rgba(0,0,0,0.5);
+  }
+
+  /* Slide window — chunky 3D frame */
+  .slide-window {
+    border-width: 4px;
+    border-radius: 16px;
+    box-shadow:
+      0 6px 0 var(--navy),
+      0 10px 32px rgba(26,26,46,0.2),
+      inset 0 1px 0 rgba(255,255,255,0.55);
+    transition: box-shadow 0.5s ease;
+    cursor: pointer;
+  }
+  .slide-window.glow-new {
+    box-shadow:
+      0 6px 0 #8b6800,
+      0 0 0 3px #FFD700,
+      0 0 28px rgba(255,215,0,0.55),
+      0 10px 32px rgba(26,26,46,0.2);
+  }
+
+  /* Shimmer ray on slide */
+  .shimmer-ray {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      108deg,
+      transparent 30%,
+      rgba(255,255,255,0.32) 50%,
+      transparent 70%
+    );
+    animation: shimmerRay 0.55s ease forwards;
+    pointer-events: none;
+    z-index: 5;
+  }
+  @keyframes shimmerRay {
+    from { clip-path: inset(0 100% 0 0); }
+    to   { clip-path: inset(0 0% 0 100%); }
+  }
+
+  /* Dots → rotating diamonds */
+  .dot {
+    width: 9px; height: 9px;
+    border-radius: 2px;
+    transform: rotate(45deg);
+    transition: all 0.25s;
+  }
+  .dot.on {
+    background: var(--red);
+    width: 9px;
+    border-radius: 2px;
+    box-shadow: 0 0 8px rgba(228,0,15,0.65);
+  }
+
+  /* Discover title deeper shadow */
+  .discover-title {
+    letter-spacing: 3px;
+    text-shadow:
+      3px 3px 0 rgba(107,79,187,0.35),
+      0 0 22px rgba(107,79,187,0.25);
+  }
+
+  /* Category headers — game section label */
+  .cat-title {
+    background: var(--navy);
+    color: var(--yellow);
+    padding: 3px 10px 3px 8px;
+    border-radius: 6px;
+    font-size: 12px;
+    letter-spacing: 1.2px;
+    display: inline-flex; align-items: center; gap: 5px;
+  }
+  .cat-title::before {
+    content: '▶';
+    font-size: 8px;
+    color: var(--red);
+    animation: arrowBlink 1.1s step-end infinite;
+  }
+  @keyframes arrowBlink {
+    0%, 100% { opacity: 1; }
+    50%      { opacity: 0; }
+  }
+  .cat-count {
+    background: var(--red);
+    color: var(--white);
+    border-color: #800008;
+    font-family: 'Fredoka One', cursive;
+  }
+
+  /* Library grid — faint inventory grid lines */
+  .lib-grid {
+    background:
+      linear-gradient(rgba(26,26,46,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(26,26,46,0.04) 1px, transparent 1px);
+    background-size: 22px 22px;
+  }
+
+  /* Library cards — 3D shadow, press animation */
+  .lib-card {
+    box-shadow: 0 4px 0 var(--navy);
+    transition: transform 0.14s, box-shadow 0.14s;
+  }
+  .lib-card:active {
+    transform: translateY(3px);
+    box-shadow: 0 1px 0 var(--navy);
+  }
+  /* Inner inset border (RPG item card feel) */
+  .lib-img-wrap::after {
+    content: '';
+    position: absolute; inset: 0;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.4);
+    pointer-events: none; z-index: 2;
+  }
+  /* Rarity: NEW items get gold */
+  .lib-card.rarity-new {
+    border-color: #c8960a;
+    box-shadow: 0 4px 0 #8b6800, 0 0 16px rgba(200,150,10,0.4);
+  }
+  .lib-card.rarity-new .lib-meta {
+    background: linear-gradient(180deg, #fffbea 0%, var(--white) 100%);
+    border-top-color: #c8960a;
+  }
+
+  /* Modal — item detail screen */
+  .modal-card { border-width: 4px; }
+  .modal-img-wrap::after {
+    content: '— ITEM PREVIEW —';
+    position: absolute; bottom: 0; left: 0; right: 0;
+    background: linear-gradient(transparent, rgba(26,26,46,0.52));
+    color: rgba(255,255,255,0.72);
+    font-size: 9px; font-family: 'Fredoka One', cursive;
+    letter-spacing: 2.5px; text-align: center;
+    padding: 30px 0 8px;
+    pointer-events: none; z-index: 2;
+  }
+  /* Shine sweep on bag button */
+  .modal-bag-btn { position: relative; overflow: hidden; }
+  .modal-bag-btn::before {
+    content: '';
+    position: absolute; top: 0; left: -100%; bottom: 0; width: 50%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.22), transparent);
+    animation: btnShine 3s ease-in-out infinite;
+    pointer-events: none;
+  }
+  @keyframes btnShine {
+    0%, 30%  { left: -80%; }
+    60%, 100% { left: 130%; }
+  }
+
+  /* Save button — 3D press + shine */
+  .save-btn {
+    box-shadow: 0 5px 0 #800008;
+    letter-spacing: 1.5px;
+    position: relative; overflow: hidden;
+    transition: transform 0.1s, box-shadow 0.1s;
+  }
+  .save-btn:active {
+    transform: translateY(4px);
+    box-shadow: 0 1px 0 #800008;
+  }
+  .save-btn::before {
+    content: '';
+    position: absolute; top: 0; left: -100%; bottom: 0; width: 45%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+    animation: btnShine 2.4s 0.5s ease-in-out infinite;
+    pointer-events: none;
+  }
+
+  /* Go-add button game style */
+  .go-add-btn {
+    box-shadow: 0 4px 0 #800008;
+    transition: transform 0.1s, box-shadow 0.1s;
+  }
+  .go-add-btn:active {
+    transform: translateY(3px);
+    box-shadow: 0 1px 0 #800008;
+  }
+
+  /* ── ACQUIRE ANIMATIONS ── */
+  .float-text {
+    position: fixed; pointer-events: none; z-index: 9999;
+    font-family: 'Fredoka One', cursive; font-size: 15px;
+    color: var(--yellow);
+    text-shadow: 2px 2px 0 var(--navy), 0 0 14px rgba(249,211,8,0.7);
+    animation: floatUp 1.5s ease-out forwards;
+    white-space: nowrap; letter-spacing: 1px;
+  }
+  @keyframes floatUp {
+    0%   { transform: translateY(0) scale(0.5); opacity: 0; }
+    15%  { transform: translateY(-18px) scale(1.2); opacity: 1; }
+    100% { transform: translateY(-110px) scale(0.9); opacity: 0; }
+  }
+  .coin-float {
+    position: fixed; pointer-events: none; z-index: 9999;
+    font-size: 20px; line-height: 1;
+    animation: coinSpin 1.4s ease-out forwards;
+  }
+  @keyframes coinSpin {
+    0%   { transform: translateY(0) scale(0.8) rotate(0deg);   opacity: 1; }
+    55%  { transform: translateY(-65px) scale(1.1) rotate(210deg); opacity: 1; }
+    100% { transform: translateY(-130px) scale(0.6) rotate(390deg); opacity: 0; }
+  }
 </style>
 </head>
 <body>
@@ -1470,6 +1735,10 @@
     const hint = document.getElementById('c-tap-hint');
     hint.style.display = (s.link || s.img) ? 'inline-flex' : 'none';
 
+    // gold glow frame for NEW items
+    const win = document.getElementById('slide-window');
+    win.classList.toggle('glow-new', getNewIds().has(s.id));
+
     // NEW! tag + sparkle burst for the 3 most recent stickers
     const card = document.getElementById('c-card');
     card.querySelectorAll('.c-new-tag, .sparkle-burst').forEach(el => el.remove());
@@ -1521,8 +1790,16 @@
       renderDots();
       updateCounter();
 
-      void card.offsetWidth; // force reflow
+      void card.offsetWidth;
       card.classList.add(inClass);
+
+      // shimmer ray over the image on every slide
+      const wrap = document.getElementById('c-img-wrap');
+      const ray = document.createElement('div');
+      ray.className = 'shimmer-ray';
+      wrap.appendChild(ray);
+      setTimeout(() => ray.remove(), 600);
+
       card.addEventListener('animationend', () => {
         card.classList.remove(inClass);
         isAnimating = false;
@@ -1599,7 +1876,8 @@
         : '';
       const priceHtml = s.price ? `<div class="lib-price">${escapeAttr(formatPrice(s.price))}</div>` : '';
       const popClass = (s.id === justAddedId) ? ' just-added' : '';
-      return `<div class="lib-card${popClass}" data-idx="${idx}">
+      const rarityClass = newIds.has(s.id) ? ' rarity-new' : '';
+      return `<div class="lib-card${popClass}${rarityClass}" data-idx="${idx}">
         <div class="lib-img-wrap">
           ${img}
           ${newBadge}
@@ -1774,6 +2052,10 @@
     updateBadge();
     clearAddForm();
 
+    const saveBtn = document.getElementById('save-btn');
+    floatAcquired(saveBtn);
+    spawnCoins(saveBtn);
+
     const toast = document.getElementById('toast');
     toast.style.opacity = '1';
     setTimeout(() => {
@@ -1781,6 +2063,35 @@
       setTimeout(() => showPage('library'), 300);
     }, 900);
   });
+
+  /* ── GAME ANIMATIONS ── */
+  function floatAcquired(anchorEl) {
+    const rect = (anchorEl || document.getElementById('save-btn')).getBoundingClientRect();
+    const el = document.createElement('div');
+    el.className = 'float-text';
+    el.textContent = '✦ ITEM ACQUIRED!';
+    el.style.left = (rect.left + rect.width / 2) + 'px';
+    el.style.top  = (rect.top - 8) + 'px';
+    el.style.transform = 'translateX(-50%)';
+    document.body.appendChild(el);
+    el.addEventListener('animationend', () => el.remove(), { once: true });
+  }
+
+  function spawnCoins(anchorEl) {
+    const rect = (anchorEl || document.getElementById('save-btn')).getBoundingClientRect();
+    const coins = ['🪙','⭐','🪙','💛','🪙'];
+    coins.forEach((c, i) => {
+      setTimeout(() => {
+        const el = document.createElement('div');
+        el.className = 'coin-float';
+        el.textContent = c;
+        el.style.left = (rect.left + rect.width / 2 + (Math.random() - 0.5) * 60) + 'px';
+        el.style.top  = rect.top + 'px';
+        document.body.appendChild(el);
+        el.addEventListener('animationend', () => el.remove(), { once: true });
+      }, i * 90);
+    });
+  }
 
   /* ── DETAIL MODAL ── */
   function openDetail(sticker) {
