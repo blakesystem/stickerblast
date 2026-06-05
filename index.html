@@ -1051,6 +1051,22 @@
     border-top-color: #c8960a;
   }
 
+  /* Rock animation for NEW item images */
+  @keyframes rockSway {
+    0%, 100% { transform: rotate(-6deg) scale(1.08); }
+    50%       { transform: rotate( 6deg) scale(1.08); }
+  }
+  .lib-card.rarity-new .lib-img,
+  .lib-card.rarity-new .lib-no-img {
+    animation: rockSway 2s ease-in-out infinite;
+    transform-origin: center center;
+  }
+  .cat-tile.rarity-new .cat-tile-img img,
+  .cat-tile.rarity-new .cat-tile-img > i {
+    animation: rockSway 2s ease-in-out infinite;
+    transform-origin: center center;
+  }
+
   /* Modal — item detail screen */
   .modal-card { border-width: 4px; }
   .modal-img-wrap::after {
@@ -1666,7 +1682,7 @@
         const priceHtml = s.price ? `<div class="cat-tile-price">${escapeAttr(formatPrice(s.price))}</div>` : '';
         const newBadge = newIds.has(s.id) ? `<div class="new-tag">NEW!</div>` : '';
         const cartBtn = s.link ? `<div class="cat-tile-cart"><i class="ti ti-shopping-cart"></i></div>` : '';
-        return `<div class="cat-tile" data-id="${s.id}">
+        return `<div class="cat-tile${newIds.has(s.id) ? " rarity-new" : ""}" data-id="${s.id}">
           <div class="cat-tile-img">${imgInner}${newBadge}${cartBtn}</div>
           <div class="cat-tile-meta">
             <div class="cat-tile-name">${escapeAttr(s.name || 'untitled')}</div>
