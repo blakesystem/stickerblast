@@ -8,7 +8,9 @@
 <meta name="apple-mobile-web-app-title" content="Sticker Board">
 <title>✦ Sticker Board</title>
 <link rel="icon" type="image/png" href="favicon.png">
-<link rel="apple-touch-icon" href="favicon.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#E4000F">
 <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
 <style>
@@ -843,7 +845,7 @@
 
   .modal-bag-btn {
     display: flex; align-items: center; justify-content: center; gap: 10px;
-    margin: 16px 18px 20px;
+    margin: 16px 18px 12px;
     padding: 16px 20px;
     background: var(--red); color: var(--white);
     border: 3px solid var(--navy);
@@ -864,6 +866,43 @@
     background: #aaa;
     pointer-events: none;
   }
+  .modal-edit-btn {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    margin: 0 18px 18px;
+    padding: 11px 16px;
+    background: var(--white); color: var(--navy);
+    border: 3px solid var(--navy);
+    border-radius: 14px;
+    font-family: 'Fredoka One', cursive;
+    font-size: 13px; letter-spacing: 0.8px; text-transform: uppercase;
+    cursor: pointer;
+    box-shadow: 0 3px 0 var(--navy);
+    transition: transform 0.12s, box-shadow 0.12s;
+    width: calc(100% - 36px);
+  }
+  .modal-edit-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--navy); }
+  .modal-edit-btn i { font-size: 16px; }
+
+  /* ── LIBRARY SEARCH ── */
+  .lib-search {
+    display: flex; align-items: center; gap: 8px;
+    margin: 10px 12px 0;
+    padding: 9px 12px;
+    border: 2.5px solid #ddd5ff; border-radius: 12px;
+    background: var(--white);
+    flex-shrink: 0;
+    transition: border-color 0.15s;
+  }
+  .lib-search:focus-within { border-color: #9f86ff; }
+  .lib-search i { font-size: 16px; color: #b3a3e8; flex-shrink: 0; }
+  .lib-search input {
+    flex: 1; min-width: 0;
+    border: none; outline: none; background: transparent;
+    font-family: 'Nunito', sans-serif;
+    font-size: 14px; font-weight: 600; color: var(--navy);
+    -webkit-appearance: none;
+  }
+  .lib-search input::placeholder { color: #bbb; }
 
   /* ═══════════════════════════════════════════════
      GAME SHOP UI POLISH
@@ -1229,6 +1268,10 @@
       </button>
     </div>
     <div class="lib-pills" id="lib-pills"></div>
+    <div class="lib-search">
+      <i class="ti ti-search"></i>
+      <input id="lib-search-in" type="search" placeholder="search stickers…" autocomplete="off">
+    </div>
     <div class="lib-grid" id="lib-grid"></div>
   </div>
 
@@ -1316,6 +1359,9 @@
         <i class="ti ti-shopping-bag"></i>
         <span id="detail-bag-text">shop now</span>
       </a>
+      <button class="modal-edit-btn" id="detail-edit" type="button">
+        <i class="ti ti-pencil"></i> edit sticker
+      </button>
     </div>
   </div>
 </div>
@@ -1335,12 +1381,15 @@
 
   let stickers = [];
   let libFilter = 'All';
+  let libSearch = '';
   let order = [];
   let cidx = 0;
   let autoTimer = null;
   let pendImg = null;
   let isAnimating = false;
   let justAddedId = null;
+  let editingId = null;     // sticker id being edited on the Add page, null = creating
+  let detailSticker = null; // sticker currently shown in the detail modal
 
   /* ── INDEXEDDB STORAGE ── */
   const DB_NAME = 'stickerblast';
@@ -1447,10 +1496,22 @@
     catch (e) { console.error('save failed', e); return storageFullAlert(); }
   }
 
+  const NEW_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
+
   function getNewIds() {
-    // newest 3 by id (timestamp) — independent of array order
-    const top = [...stickers].sort((a, b) => (b.id || 0) - (a.id || 0)).slice(0, 3);
+    // NEW! = the 3 newest items, but only if added within the last 7 days
+    // (ids are Date.now() timestamps, so id doubles as created-at)
+    const cutoff = Date.now() - NEW_WINDOW_MS;
+    const top = [...stickers]
+      .sort((a, b) => (b.id || 0) - (a.id || 0))
+      .slice(0, 3)
+      .filter(s => (s.id || 0) >= cutoff);
     return new Set(top.map(s => s.id));
+  }
+
+  // tiny haptic tick — no-op where unsupported (e.g. iOS Safari)
+  function buzz(pattern = 10) {
+    if (navigator.vibrate) { try { navigator.vibrate(pattern); } catch {} }
   }
 
   function formatPrice(p) {
@@ -1942,14 +2003,20 @@
   }
 
   document.getElementById('next-btn').addEventListener('click', () => {
-    stopAuto(); navigate(1); startAuto();
+    buzz(8); stopAuto(); navigate(1); startAuto();
   });
   document.getElementById('prev-btn').addEventListener('click', () => {
-    stopAuto(); navigate(-1); startAuto();
+    buzz(8); stopAuto(); navigate(-1); startAuto();
   });
   document.getElementById('go-add-btn').addEventListener('click', () => showPage('add'));
   document.getElementById('export-btn').addEventListener('click', exportData);
   document.getElementById('import-btn').addEventListener('click', importData);
+
+  // search lives outside the re-rendered grid so it keeps focus while typing
+  document.getElementById('lib-search-in').addEventListener('input', e => {
+    libSearch = e.target.value.trim().toLowerCase();
+    renderLibrary();
+  });
 
   /* ── LIBRARY ── */
   function renderLibrary() {
@@ -1968,10 +2035,14 @@
       p.addEventListener('click', () => { libFilter = p.dataset.cat; renderLibrary(); });
     });
 
-    const filtered = libFilter === 'All' ? stickers : stickers.filter(s => s.cat === libFilter);
+    const filtered = stickers.filter(s =>
+      (libFilter === 'All' || s.cat === libFilter) &&
+      (!libSearch || (s.name || '').toLowerCase().includes(libSearch))
+    );
 
     if (!filtered.length) {
-      grid.innerHTML = `<div class="lib-empty"><i class="ti ti-layout-grid"></i><p>nothing here yet</p></div>`;
+      const msg = libSearch ? 'no matches found' : 'nothing here yet';
+      grid.innerHTML = `<div class="lib-empty"><i class="ti ti-layout-grid"></i><p>${msg}</p></div>`;
       return;
     }
 
@@ -2023,6 +2094,7 @@
         const idx = parseInt(btn.dataset.idx);
         const removed = stickers[idx];
         if (!removed) return;
+        buzz(15);
         stickers.splice(idx, 1);
         order = shuffle([...Array(stickers.length).keys()]);
         cidx = 0;
@@ -2074,6 +2146,8 @@
     document.getElementById('name-in').value = '';
     document.getElementById('price-in').value = '';
     document.getElementById('cat-sel').value = 'Clothes';
+    editingId = null;
+    document.getElementById('save-btn').textContent = 'save sticker!';
   }
 
   document.getElementById('dz').addEventListener('click', () => {
@@ -2165,6 +2239,16 @@
     }
   });
 
+  function showToastThenLibrary(msg) {
+    const toast = document.getElementById('toast');
+    toast.textContent = msg;
+    toast.style.opacity = '1';
+    setTimeout(() => {
+      toast.style.opacity = '0';
+      setTimeout(() => showPage('library'), 300);
+    }, 900);
+  }
+
   document.getElementById('save-btn').addEventListener('click', async () => {
     const name  = document.getElementById('name-in').value.trim();
     const link  = linkField.get();
@@ -2172,6 +2256,26 @@
     const url   = urlField.get();
     const price = document.getElementById('price-in').value.trim();
     const img   = pendImg || url || null;
+    const saveBtn = document.getElementById('save-btn');
+
+    // update path: editing an existing sticker keeps its id (= recency)
+    if (editingId !== null) {
+      const s = stickers.find(x => x.id === editingId);
+      if (s) {
+        const before = { ...s };
+        Object.assign(s, { name: name || 'untitled', img, link, cat, price });
+        const ok = await savePut(s);
+        if (!ok) { Object.assign(s, before); return; } // keep form so user can retry
+        colorCache.delete(s.id); // image may have changed
+        buzz(20);
+        updateBadge();
+        clearAddForm();
+        floatAcquired(saveBtn, '✦ ITEM UPDATED!');
+        showToastThenLibrary('✓ sticker updated!');
+        return;
+      }
+      editingId = null; // sticker was deleted while editing — fall through to create
+    }
 
     const newSticker = { name: name || 'untitled', img, link, cat, price, id: Date.now() };
     stickers.unshift(newSticker);
@@ -2190,27 +2294,20 @@
       return;
     }
 
+    buzz([20, 40, 20]);
     updateBadge();
     clearAddForm();
-
-    const saveBtn = document.getElementById('save-btn');
     floatAcquired(saveBtn);
     spawnCoins(saveBtn);
-
-    const toast = document.getElementById('toast');
-    toast.style.opacity = '1';
-    setTimeout(() => {
-      toast.style.opacity = '0';
-      setTimeout(() => showPage('library'), 300);
-    }, 900);
+    showToastThenLibrary('✓ sticker saved!');
   });
 
   /* ── GAME ANIMATIONS ── */
-  function floatAcquired(anchorEl) {
+  function floatAcquired(anchorEl, text = '✦ ITEM ACQUIRED!') {
     const rect = (anchorEl || document.getElementById('save-btn')).getBoundingClientRect();
     const el = document.createElement('div');
     el.className = 'float-text';
-    el.textContent = '✦ ITEM ACQUIRED!';
+    el.textContent = text;
     el.style.left = (rect.left + rect.width / 2) + 'px';
     el.style.top  = (rect.top - 8) + 'px';
     el.style.transform = 'translateX(-50%)';
@@ -2234,9 +2331,31 @@
     });
   }
 
+  /* ── EDIT FLOW ── */
+  function startEdit(s) {
+    closeDetail();
+    editingId = s.id;
+    showPage('add');
+    document.getElementById('name-in').value = s.name || '';
+    document.getElementById('price-in').value = s.price || '';
+    document.getElementById('cat-sel').value = CAT_EMOJI[s.cat] ? s.cat : 'Other';
+    linkField.set(s.link || '');
+    if (s.img && !s.img.startsWith('data:')) {
+      urlField.set(s.img); // also restores the preview via onValue
+    } else {
+      urlField.set('');
+      if (s.img) setPreview(s.img);
+      else { pendImg = null; resetDz(); }
+    }
+    document.getElementById('save-btn').textContent = 'update sticker!';
+    document.getElementById('page-sub').textContent = 'edit sticker';
+  }
+
   /* ── DETAIL MODAL ── */
   function openDetail(sticker) {
     if (!sticker) return;
+    detailSticker = sticker;
+    buzz(8);
     stopAuto();
     document.getElementById('detail-name').textContent = sticker.name || 'untitled';
     document.getElementById('detail-cat').textContent =
@@ -2281,6 +2400,9 @@
     }
   }
   document.getElementById('detail-close').addEventListener('click', closeDetail);
+  document.getElementById('detail-edit').addEventListener('click', () => {
+    if (detailSticker) startEdit(detailSticker);
+  });
   document.getElementById('detail-modal').addEventListener('click', e => {
     if (e.target.id === 'detail-modal') closeDetail();
   });
@@ -2351,6 +2473,14 @@
     startAuto();
   }
   boot();
+
+  /* ── PWA ── */
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js')
+        .catch(e => console.warn('SW registration failed', e));
+    });
+  }
 </script>
 </body>
 </html>
