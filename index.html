@@ -135,15 +135,13 @@
     position: relative;
   }
 
-  /* the actual card slides inside the window */
+  /* the actual card slides inside the window (slide animations applied via JS) */
   .c-card {
     width: 100%;
     background: var(--white);
     display: flex;
     flex-direction: column;
     position: relative;
-    /* slide animations applied via JS */
-    transition: transform 0.42s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.42s ease;
   }
   .c-card.slide-in-right  { animation: slideInRight  0.42s cubic-bezier(0.4,0,0.2,1) both; }
   .c-card.slide-out-left  { animation: slideOutLeft  0.42s cubic-bezier(0.4,0,0.2,1) both; }
@@ -631,7 +629,7 @@
     white-space: nowrap;
     pointer-events: none;
     border: 3px solid var(--navy);
-    border-radius: 10px 10px 10px 10px;
+    border-radius: 10px;
     box-shadow: 3px 3px 0 var(--navy);
     padding-left: 22px; /* room for the hole */
   }
@@ -1390,19 +1388,69 @@
     });
   }
 
-  async function saveAll() {
+  async function dbPut(sticker) {
+    const db = await openDB();
+    return new Promise((res, rej) => {
+      const tx = db.transaction(STORE, 'readwrite');
+      tx.objectStore(STORE).put(sticker);
+      tx.oncomplete = () => res(true);
+      tx.onerror = () => rej(tx.error);
+      tx.onabort = () => rej(tx.error || new Error('aborted'));
+    });
+  }
+
+  async function dbDelete(id) {
+    const db = await openDB();
+    return new Promise((res, rej) => {
+      const tx = db.transaction(STORE, 'readwrite');
+      tx.objectStore(STORE).delete(id);
+      tx.oncomplete = () => res(true);
+      tx.onerror = () => rej(tx.error);
+      tx.onabort = () => rej(tx.error || new Error('aborted'));
+    });
+  }
+
+  let useLS = false; // true when IndexedDB is unavailable (e.g. private mode)
+
+  function storageFullAlert() {
+    alert("⚠ Couldn't save — your device storage may be very full. Tap Export to back up, then remove some stickers to free space.");
+    return false;
+  }
+
+  function saveLS() {
     try {
-      await dbReplaceAll(stickers);
+      localStorage.setItem(LS_KEY, JSON.stringify(stickers));
       return true;
     } catch (e) {
-      console.error('save failed', e);
-      alert("⚠ Couldn't save — your device storage may be very full. Tap Export to back up, then remove some stickers to free space.");
-      return false;
+      console.error('localStorage save failed', e);
+      return storageFullAlert();
     }
   }
 
+  // hot path: write only the changed record instead of rewriting everything
+  async function savePut(sticker) {
+    if (useLS) return saveLS();
+    try { await dbPut(sticker); return true; }
+    catch (e) { console.error('save failed', e); return storageFullAlert(); }
+  }
+
+  async function saveRemove(id) {
+    if (useLS) return saveLS();
+    try { await dbDelete(id); return true; }
+    catch (e) { console.error('delete failed', e); return storageFullAlert(); }
+  }
+
+  // full rewrite — only for import/migration
+  async function saveAll() {
+    if (useLS) return saveLS();
+    try { await dbReplaceAll(stickers); return true; }
+    catch (e) { console.error('save failed', e); return storageFullAlert(); }
+  }
+
   function getNewIds() {
-    return new Set(stickers.slice(0, 3).map(s => s.id));
+    // newest 3 by id (timestamp) — independent of array order
+    const top = [...stickers].sort((a, b) => (b.id || 0) - (a.id || 0)).slice(0, 3);
+    return new Set(top.map(s => s.id));
   }
 
   function formatPrice(p) {
@@ -1511,14 +1559,15 @@
           return;
         }
         if (!confirm(`Import ${fresh.length} new sticker${fresh.length === 1 ? '' : 's'}?`)) return;
-        stickers = [...fresh, ...stickers];
+        const freshIds = new Set(fresh.map(s => s.id));
+        // merge, then keep newest-first by id so imported old items don't masquerade as new
+        stickers = [...fresh, ...stickers].sort((a, b) => (b.id || 0) - (a.id || 0));
         if (await saveAll()) {
           order = shuffle([...Array(stickers.length).keys()]);
           cidx = 0;
           renderLibrary();
-          updateBadge();
         } else {
-          stickers = stickers.slice(fresh.length);
+          stickers = stickers.filter(s => !freshIds.has(s.id));
         }
       };
       reader.readAsText(file);
@@ -1642,6 +1691,16 @@
     autoTimer = null;
   }
 
+  // don't burn battery sliding a carousel nobody can see
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      stopAuto();
+    } else if (document.getElementById('page-carousel').classList.contains('active') &&
+               !document.getElementById('detail-modal').classList.contains('open')) {
+      startAuto();
+    }
+  });
+
   /* ── CAROUSEL ── */
   function renderCarousel() {
     const empty = document.getElementById('c-empty');
@@ -1721,19 +1780,53 @@
         if (sticker) openDetail(sticker);
       });
     });
+    // cart badge → straight to the product page
+    wrap.querySelectorAll('.cat-tile-cart').forEach(b => {
+      b.addEventListener('click', e => {
+        e.stopPropagation();
+        const tile = b.closest('.cat-tile');
+        const s = stickers.find(x => x.id === parseInt(tile.dataset.id));
+        if (s && s.link) window.open(s.link, '_blank', 'noopener');
+      });
+    });
+  }
+
+  const colorCache = new Map(); // sticker id → {r,g,b} | null (null = no usable color)
+
+  function applyCardTheme(s) {
+    const cached = colorCache.get(s.id);
+    if (cached !== undefined) {
+      cached ? applyDynamicColor(cached.r, cached.g, cached.b)
+             : applyTheme(THEMES[cidx % THEMES.length]);
+      return;
+    }
+    const tmpImg = new Image();
+    tmpImg.crossOrigin = 'anonymous'; // needed for getImageData; failure is non-fatal
+    tmpImg.onload = () => extractColor(tmpImg, (r, g, b) => {
+      colorCache.set(s.id, r === null ? null : { r, g, b });
+      // only recolor if this sticker is still the one on screen
+      const current = stickers[order[cidx]];
+      if (!current || current.id !== s.id) return;
+      if (r === null) applyTheme(THEMES[cidx % THEMES.length]);
+      else applyDynamicColor(r, g, b);
+    });
+    tmpImg.onerror = () => applyTheme(THEMES[cidx % THEMES.length]);
+    tmpImg.src = s.img;
   }
 
   function populateCard(s) {
     const wrap = document.getElementById('c-img-wrap');
+    const noImgHtml = `<div class="c-no-img"><i class="ti ti-photo-off"></i><span>no image</span></div>`;
     if (s.img) {
-      const tmpImg = new Image();
-      tmpImg.crossOrigin = 'anonymous';
-      tmpImg.onload = () => extractColor(tmpImg, (r, g, b) => applyDynamicColor(r, g, b));
-      tmpImg.onerror = () => applyTheme(THEMES[cidx % THEMES.length]);
-      tmpImg.src = s.img;
-      wrap.innerHTML = `<img src="${s.img}" alt="${s.name || ''}" crossorigin="anonymous" onerror="this.parentNode.innerHTML='<div class=c-no-img><i class=ti ti-photo-off></i><span>no image</span></div>'">`;
+      applyCardTheme(s);
+      wrap.innerHTML = '';
+      const imgEl = document.createElement('img');
+      imgEl.alt = s.name || '';
+      imgEl.onerror = () => { wrap.innerHTML = noImgHtml; };
+      imgEl.src = s.img;
+      wrap.appendChild(imgEl);
     } else {
-      wrap.innerHTML = `<div class="c-no-img"><i class="ti ti-photo-off"></i><span>no image</span></div>`;
+      wrap.innerHTML = noImgHtml;
       applyTheme(THEMES[cidx % THEMES.length]);
     }
     document.getElementById('c-name').textContent = s.name || 'untitled';
@@ -1752,14 +1845,11 @@
     const hint = document.getElementById('c-tap-hint');
     hint.style.display = (s.link || s.img) ? 'inline-flex' : 'none';
 
-    // gold glow frame for NEW items
-    const win = document.getElementById('slide-window');
-    win.classList.toggle('glow-new', getNewIds().has(s.id));
-
-    // NEW! tag + sparkle burst for the 3 most recent stickers
+    // NEW! treatment: gold glow frame, corner tag, sparkle burst
+    const isNew = getNewIds().has(s.id);
+    document.getElementById('slide-window').classList.toggle('glow-new', isNew);
     const card = document.getElementById('c-card');
     card.querySelectorAll('.c-new-tag, .sparkle-burst').forEach(el => el.remove());
-    const isNew = getNewIds().has(s.id);
     card.classList.toggle('is-new', isNew);
     if (isNew) {
       const tag = document.createElement('div');
@@ -1817,10 +1907,14 @@
       wrap.appendChild(ray);
       setTimeout(() => ray.remove(), 600);
 
-      card.addEventListener('animationend', () => {
+      const finish = () => {
         card.classList.remove(inClass);
         isAnimating = false;
-      }, { once: true });
+      };
+      card.addEventListener('animationend', finish, { once: true });
+      // safety net: animationend never fires in a backgrounded tab,
+      // which would freeze the carousel forever
+      setTimeout(finish, 700);
     }, 380);
   }
 
@@ -1926,10 +2020,24 @@
       btn.addEventListener('click', e => {
         e.stopPropagation();
         e.preventDefault();
-        stickers.splice(parseInt(btn.dataset.idx), 1);
+        const idx = parseInt(btn.dataset.idx);
+        const removed = stickers[idx];
+        if (!removed) return;
+        stickers.splice(idx, 1);
         order = shuffle([...Array(stickers.length).keys()]);
         cidx = 0;
-        saveAll(); renderLibrary(); updateBadge();
+        saveRemove(removed.id);
+        renderLibrary(); // re-renders grid and refreshes the scoped badge
+      });
+    });
+
+    // cart icon → straight to the product page; tile body → detail modal
+    grid.querySelectorAll('.lib-cart').forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        const card = btn.closest('.lib-card');
+        const s = stickers[parseInt(card.dataset.idx)];
+        if (s && s.link) window.open(s.link, '_blank', 'noopener');
       });
     });
 
@@ -1949,14 +2057,18 @@
     document.getElementById('dz').innerHTML = `<img src="${src}" alt="preview">`;
   }
 
-  function clearAddForm() {
-    pendImg = null;
+  function resetDz() {
     document.getElementById('dz').innerHTML = `
       <div class="dz-hint">
         <i class="ti ti-photo-up"></i>
         <p>tap to upload image</p>
         <span>or paste from clipboard (⌘V / long-press → paste)</span>
       </div>`;
+  }
+
+  function clearAddForm() {
+    pendImg = null;
+    resetDz();
     urlField.set('');
     linkField.set('');
     document.getElementById('name-in').value = '';
@@ -2019,8 +2131,20 @@
     };
   }
 
-  const urlField  = setupPasteField('url-in',  'url-in-input',  'url-in-clear',
-    v => { if (v) setPreview(v); });
+  function isHttpUrl(v) {
+    try { const u = new URL(v); return u.protocol === 'http:' || u.protocol === 'https:'; }
+    catch { return false; }
+  }
+
+  const urlField = setupPasteField('url-in', 'url-in-input', 'url-in-clear', v => {
+    if (v && isHttpUrl(v)) {
+      setPreview(v);
+    } else if (!v && pendImg && !pendImg.startsWith('data:')) {
+      // URL was cleared and the preview came from it — drop the pending image too
+      pendImg = null;
+      resetDz();
+    }
+  });
   const linkField = setupPasteField('link-in', 'link-in-input', 'link-in-clear', null);
 
   document.addEventListener('paste', e => {
@@ -2057,7 +2181,7 @@
     if (newPos > -1) { [order[0], order[newPos]] = [order[newPos], order[0]]; }
     cidx = 0;
 
-    const ok = await saveAll();
+    const ok = await savePut(newSticker);
     if (!ok) {
       // rollback in-memory state so reality matches storage
       stickers.shift();
@@ -2211,14 +2335,16 @@
       if (lsRaw && stickers.length) {
         try { localStorage.removeItem(LS_KEY); } catch {}
       }
-      // sort newest-first by id so unshift-based ordering is restored
-      // (IndexedDB getAll returns insertion order, which after clear+put matches array order)
     } catch (e) {
       console.error('IndexedDB unavailable, falling back to localStorage', e);
+      useLS = true;
       try {
         stickers = JSON.parse(localStorage.getItem(LS_KEY) || '[]');
       } catch { stickers = []; }
     }
+    // IDB getAll() returns records sorted by key — oldest id first.
+    // Restore newest-first so NEW! tags and library order are correct.
+    stickers.sort((a, b) => (b.id || 0) - (a.id || 0));
     spawnBgSparkles();
     renderCarousel();
     updateBadge();
